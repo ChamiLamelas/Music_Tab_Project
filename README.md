@@ -2,9 +2,11 @@
 
 The primary purpose of this project was to provide a program that takes a text file holding a bass guitar tab and converting it into an HTML file that holds a tablature or bass clef representation of the same notes.
 
+**Date:** Summer 2019
+
 ## Getting Started
 
-There are a few pre-requisites needed before using this program.
+This section will inform you of the necessary prerequisites to run this program, the necessary files, and how to prepare program input files.
 
 ### Prerequisites
 
@@ -25,8 +27,8 @@ The input tab files follow the general format of tabs found on [Ultimate Guitar 
 
 **(1)** Lines that are meant to be strings must be only made up of *ONLY* the following characters *AND* must end with a vertical bar:
 
-* newline/carriage return: ""\n"
-* tab: ""\t"
+* newline/carriage return: "\n"
+* tab: "\t"
 * *only* the uppercase letters that belong to the set of bass string ids {G, D, A, E}
 * vertical bar: "|"
 * hyphen: "-"
@@ -41,6 +43,12 @@ The input tab files follow the general format of tabs found on [Ultimate Guitar 
 * dot marking: "."
 * space: " "
 * *only* the uppercase letters that belong to the timing IDs {W, H, Q, E, S}
+
+These lines should only be present if the timing is supplied in the tab, which is usually not the case. Make sure that if the timing is supplied, the 1st configuration line (not counting empty lines or comments) should be
+
+```
+timingsupplied=true
+```
 
 **Note:** This means that other lines that are made up of only characters matching one of these 2 sets will be interpreted by the program as a string or timing line and could lead to an error. For example, if you are writing notes as in the case of this sample file and have a bar line made of hyphens, this would lead to an error in the file reading:
 
@@ -75,7 +83,7 @@ E|-10-|
 **(4)** 2 notes should not overlap in such a way their fret numbers are not fully on top of each other. For example, the following would be a violation because 10 and 11 overlap. the note on the d-string would not be read properly
 
 ```
-    QQ
+     QQ
 G|---10---|
 D|----11--|
 A|--------|
@@ -108,6 +116,8 @@ After the first time you run the program, a log file will be generated and place
 
 The configuration file is designed to provide the user more freedom in how the program runs. It may be best to examine the default configuration file before writing one on your own. And make sure it has the same name as the default configuration file. Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Errors in the configuration file are also reported to the log file.
 
+**Important:** If you wish write your own configuration file and provide different settings for the various options that can be configured in this program, make sure you put the new options and settings in the same order as in the default configuration file. Otherwise, an error will occur. 
+
 ### Note about Cygwin
 
 If you are interested in using Cygwin to run the program, I encountered an error with the time logging when I used Cygwin. After some research I found it could have been caused by Cygwin updating the Windows time zone environmental variable in such a way that Windows failed to interpret it correctly and switched to a default time zone (which seemed to be 1 hour after Greenwich Mean Time (GMT)). I wasn't confident about editing system environmental variables, which can be done through Cygwin, so I decided it was best to use Windows Command Prompt.
@@ -118,7 +128,7 @@ If interested, here are possible major additions to later versions of the projec
 
 * Support for non-standard tuning (G, D, A, E).
 * A version for instruments other than a 4-string bass.
-* Support for other timing identifiers than W, H, Q, E, and S for whole note, half note, quarter note, eigth note, and sixteenth note respectively.
+* Support for other timing identifiers than W, H, Q, E, and S for whole note, half note, quarter note, eighth note, and sixteenth note respectively.
 
 ## Built With
 
