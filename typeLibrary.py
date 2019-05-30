@@ -14,7 +14,7 @@ author: Chami Lamelas
 date: Summer 2019
 """
 
-from exceptionsLibrary import TabException, MeasureException, TabConfigurationException
+from exceptionsLibrary import TabException, MeasureException, TabConfigurationException, TabFileException
 from displayUtilLibrary import StaffString
 
 """
@@ -24,7 +24,7 @@ that into a staff-based representation. Thus, it has the following attributes:
 string: the name of the note's string
 fret: the note's fret on said string
 staffPos: position of the note on the bass clef where 0 corresponds to the position of the lowest note on the guitar and can be as large as the highest note on
-the staff
+the staff.
 """
 class Note:
     """
@@ -32,9 +32,9 @@ class Note:
 
     params:
     string - a string
-    fret - a fret
+    fret - a fret (is a String value)
 
-    Raises a TabException if fret is not an integer in the range [0, 36] or string is not in the set {G, D, A, E}
+    Raises a TabFileException if fret is not an integer in the range [0, 36] or string is not in the set {G, D, A, E}
     """
     # TODO hardcoded for standard tuning -> update
     def __init__(self, string, fret):
@@ -44,7 +44,7 @@ class Note:
             if nFret < 0 or nFret > MAX_FRET:
                 raise ValueError()
         except ValueError as v:
-            raise TabException("Invalid fret value ({0}). Fret must be an integer in the range [0, {1}]".format(nFret, MAX_FRET))
+            raise TabFileException("invalid fret value ", "Fret cannot be {0}, it must be an integer in the range [0, {0}]".format(nFret, MAX_FRET))
         halfsteps = -1 # number of halfsteps from lowest E on bass
         if string == "E":
             halfsteps = nFret
@@ -55,7 +55,7 @@ class Note:
         elif string == "G":
             halfsteps = nFret + 15
         else:
-            raise TabException("Invalid string name ({0}). Please review string identification.".format(string))
+            raise TabFileException("invalid string name", "{0} is not a valid string id. Please review string identification.".format(string))
 
         # order holds the ordering of notes on the guitar starting with the letter corresponding to the lowest note on the bass and for a given index i in order,
         # counts[i] holds the number of staff positions (lines & spaces) before orders[i] on the staff.
@@ -73,7 +73,7 @@ class Note:
     Returns whether or not this note is a sharp.
     """
     def isSharp(self):
-        return self.staffPos < 0
+        return self.staffPos < 0 # based on implementation of __init__()
 
     """
     Provides a way to check the equality of 2 Notes.
@@ -114,6 +114,10 @@ lengths of time.
 unicode - a dictionary that maps the same set of symbols that are keys in lengths to unicode values that hold their representations to be displayed on the staff
 output. Unicode values taken from https://unicode.org/charts/PDF/U1D100.pdf.
 EMPTY_SLICE - used by StaffString in printing empty slices
+
+Note: in StaffString object representation, a Note n at position n.staffpos will be at index = StaffString.STAFF_HEIGHT - 1 - n.staffPos. This is because moving bottom->top
+in a StaffString corresponds to moving bottom->top in a Staff. Thus, placing n at index = n.staffPos in a StaffString would not do. This calculation is used throughout the
+Slice class, which is why it is explained here.
 """
 class Slice:
 
@@ -129,7 +133,7 @@ class Slice:
     times - times corresponding to each symbol
     unicode - unicode values corresponding to each symbol
     """
-    def loadLengths(ids=None, times=None, unicode=None):
+    def loadMaps(ids=None, times=None, unicode=None):
         if ids is None:
             Slice.lengths["W"] = 1
             Slice.unicode["W"] = "\U0001D15D"
@@ -178,13 +182,13 @@ class Slice:
     def addNote(self, string, fret):
         note = Note(string, fret)
         self.notes.append(note)
+        # the following Slice attributes are updated for the purpose of future StaffString generation
         if note.isSharp():
             self.hasSharp = True
         if abs(note.staffPos) > self.maxStaffPos:
             self.maxStaffPos = abs(note.staffPos)
         if abs(note.staffPos) < self.minStaffPos:
             self.minStaffPos = abs(note.staffPos)
-        # print("string {0} fret {1} --> staff position {2}".format(string, fret, staffPos)) # DEBUG
 
     """
     Applies a dot to the Slice. That is, the length of the Slice's time is increased accordingly.
@@ -199,24 +203,24 @@ class Slice:
         self.nextDotLength /= 2
 
     """
-    Checks if a symbol is one which is found in the input file.
+    Checks if a length symbol is one which is found in the input file.
 
     Raises a TabException if the symbol is not found
     """
-    def checkSymbol(symbol):
+    def checkLengthSymbol(symbol):
         if symbol not in Slice.lengths:
-            raise TabException("Symbol {0} not recognized".format(symbol))
+            raise TabFileException("symbol not recognized", "{0} is not a valid symbol. Please review symbol identification".format(symbol))
 
     """
-    Updates a symbol's attributes with a given length symbol taken from input file's set of length symbols.
+    Updates a Slice's length with a given length symbol taken from input file's set of length symbols.
 
     params:
     symbol - a given length symbol
 
-    Raises a TabException if checkSymbol(symbol) fails (see above doc.)
+    Raises a TabException if checkLengthSymbol(symbol) fails (see above doc.)
     """
     def setLength(self, symbol):
-        Slice.checkSymbol(symbol)
+        Slice.checkLengthSymbol(symbol)
         self.symbol = symbol
         self.length = Slice.lengths[symbol]
         self.nextDotLength = self.length/2
@@ -233,21 +237,24 @@ class Slice:
 
     params:
     s - a StaffString
-    ledgerLine - ledger line associated with the Staff String
+
+    pre-condition: s has been prepared with the appropriate width.
     """
-    def fillLedgerLinesInToStaffStr(self, s, ledgerLine):
-        i = StaffString.STAFF_HEIGHT - 1 - self.maxStaffPos
+    def fillLedgerLinesInToStaffStr(self, s):
+        ledgerLine = "" # fill the ledger line to be the StaffString's width
+        for i in range(0, s.width):
+            ledgerLine += "-"
+        i = StaffString.STAFF_HEIGHT - 1 - self.maxStaffPos # upper ledger lines, working low->high in StaffString is equivalent to top->bottom in staff
         if i % 2 != 0:
             i += 1
         while i < StaffString.BASS_CLEF_TOP:
-            s.setIndex(i, ledgerLine)
+            s.updateIndexToStr(i, ledgerLine)
             i += 2
-
-        j = StaffString.STAFF_HEIGHT - 1 - self.minStaffPos
+        j = StaffString.STAFF_HEIGHT - 1 - self.minStaffPos # lower ledger lines, working high->low in StaffString is equivalent to bottom->top in staff
         if j % 2 != 0:
             j -= 1
         while j > StaffString.BASS_CLEF_BTM:
-            s.setIndex(j, ledgerLine)
+            s.updateIndexToStr(j, ledgerLine)
             j -= 2
 
     """
@@ -255,69 +262,69 @@ class Slice:
 
     params:
     s - a StaffString object
-    ledgerLineLength - a ledger line length associated with s
+
+    pre-condition: s has been prepared with the appropriate width.
     """
-    def loadNotesInToStaffStr(self, s, ledgerLineLength):
+    def loadNotesInToStaffStr(self, s):
         SHARP = "\u266F"
         DOT = "\u00b7"
 
         for note in self.notes:
-            str = Slice.unicode[self.symbol]
-            fill = 1
+            str = Slice.unicode[self.symbol] # temp. variable that will be ultimately placed into the StaffString, s
+            fill = 1 # tracks how much of the StaffString's width has been filled. This is updated as sharps or dots are added to "str"
             if note.isSharp():
                 str += SHARP
                 fill += 1
             for d in range(0, self.numDots):
                 str += DOT
                 fill += 1
+            # for what's left of str to be filled, add either "-" or " " depending on whether the note is on a line or space in the staff
             if note.staffPos % 2 == 0:
                 str = "-"+str
                 fill += 1
-                for k in range(fill, ledgerLineLength):
+                for k in range(fill, s.width):
                     str += "-"
             else:
                 str = " "+str
                 fill += 1
-                for k in range(fill, ledgerLineLength):
+                for k in range(fill, s.width):
                     str += " "
-            s.setIndex(StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos), str)
+            s.updateIndexToStr(StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos), str)
 
     """
     If this Slice object marks the beginning or end of a tie, given a StaffString object, this method attaches the ties to the appropriate places in the StaffString.
 
     params:
     s - a StaffString
+
+    pre-condition: s has been prepared with the appropriate width
     """
     def attachTiesToStaffStr(self, s):
-        if self.tieBegins:
+        if self.tieBegins: # if this Slice marks the beginning of a tie, update each index of the StaffString with a tie-beginning character
             BEGIN_TIE = "_" # "\U0001D175"
             for note in self.notes:
                 idx = StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos)
-                s.setIndex(idx, s.getIndex(idx)[:-1] + BEGIN_TIE)
-
-        if self.tieEnds:
+                s.updateIndexToStr(idx, s.getRowAtIndex(idx)[:-1] + BEGIN_TIE)
+        if self.tieEnds: # if this Slice marks the ending of a tie, update each index of the StaffString with a tie-ending character
             END_TIE = "_" # "\U0001D176"
             for note in self.notes:
                 idx = StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos)
-                s.setIndex(idx, END_TIE + s.getIndex(idx)[1:])
+                s.updateIndexToStr(idx, END_TIE + s.getRowAtIndex(idx)[1:])
 
     """
     Returns a StaffString representation of this Slice.
     """
     def getStaffStr(self):
         s = StaffString()
-        ledgerLine = "---"
         s.union(StaffString())
         s.union(StaffString())
         if self.hasSharp:
-            ledgerLine += "-"
             s.union(StaffString())
         for d in range(0, self.numDots):
-            ledgerLine += "-"
             s.union(StaffString())
-
-        self.fillLedgerLinesInToStaffStr(s, ledgerLine)
-        self.loadNotesInToStaffStr(s, len(ledgerLine))
+        # now that a StaffString with a necessary width has been created, use helper methods to update it
+        self.fillLedgerLinesInToStaffStr(s)
+        self.loadNotesInToStaffStr(s)
         self.attachTiesToStaffStr(s)
         return s
 
@@ -327,8 +334,8 @@ class Slice:
     """
     def getCorrMeasureStaffStr(self):
         out = StaffString("|")
-        for note in self.notes:
-            out.setIndex(StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos), "_")
+        for note in self.notes: # replace indices corresponding to Notes in the Slice with "_"
+            out.updateIndexToStr(StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos), "_")
         return out
 
     """
@@ -471,12 +478,14 @@ class Song:
     Returns a tableture String representation of this Song using StaffString utility class and its String represenation.
     """
     def __str__(self):
-        MAX_ROW_WIDTH = 140
+        MAX_ROW_WIDTH = 140 # maximum number of characters in a row of this Song. A row is some number of Measures.
         out = StaffString("|")
         out.union(StaffString("|"))
-        curr = StaffString(str="", restrict=False)
+        curr = StaffString(str="", restrict=False) # temporary row holder, used & explained in loop below
         for i in range(0, len(self.measures)):
-            nextMeasure = self.measures[i].getStaffStr(self.gapsize)
+            nextMeasure = self.measures[i].getStaffStr(self.gapsize) # temporary var. to hold next Measure to be added to the Song
+            # if adding the next Measure in this row of the StaffString, add the current row to the output StaffString followed by a newline StaffString. If a tie begins in the
+            # last Slice of the last added Measure, add its corresponding measure-StaffString to the output. Otherwise, add a regular measure line StaffString. Lastly, reset curr
             if curr.width + nextMeasure.width > MAX_ROW_WIDTH:
                 out.union(curr)
                 out.union(StaffString.newLineStaffString)
@@ -485,11 +494,13 @@ class Song:
                 else:
                     out.union(StaffString("|"))
                 curr = StaffString(str="", restrict=False)
+            # else, continue
             curr.union(nextMeasure)
+            # for any Measure that is added to curr, it must also have an appropriate measure line StaffString added as in the case a few lines above
             if self.measures[i].getLastSlice().tieBegins:
                 curr.union(self.measures[i].getLastSlice().getCorrMeasureStaffStr())
             else:
                 curr.union(StaffString("|"))
-        out.union(curr) # in case last row held in curr wasn't over max row width
+        out.union(curr) # in case last row held in curr wasn't over max row width, it should be added to the output StaffString
         out.union(StaffString("|"))
         return str(out)

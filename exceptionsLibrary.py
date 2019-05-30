@@ -9,7 +9,7 @@ TabFileException - error caused by incorrect input tab file
 TabConfigurationException - exception caused by incorrect program configuration file
 StaffException - caused by illegal StaffString object construction
 StaffOutOfBoundsException - caused by accessing a StaffString index that is out of bounds
-LoggingError - caused by inability to open log file.
+LoggingException - caused by failure of logging operations.
 
 Some of these exceptions are used in try-except clauses that handle a more generic Python exception (e.g. ValueError, IOError) and then raise one of these exception types
 to better inform the user.
@@ -29,8 +29,14 @@ class MeasureException(TabException):
         super().__init__("Operation on Measure failed: {0}. Reason: {1}.".format(op, reason))
 
 class TabFileException(TabException):
-    def __init__(self, count):
-        super().__init__("Invalid line count. {0} lines were interpreted as either timing information lines or strings.".format(count))
+    README_LINK = ""
+
+    def __init__(self, issue, reason):
+        super().__init__("Issue with the tab file: \"{0}\". Reason: {1}. Please review the input file and the guidelines outlined in the program README here {2}.".format(issue, reason, README_LINK))
+
+class TabIOException(TabException):
+    def __init__(self, issue, reason):
+        super().__init__("I/O Error with \"{0}\". Reason: {1}.".format(issue, reason))
 
 class TabConfigurationException(TabException):
     DEFAULT_CONFIG_LINK = ""
@@ -41,7 +47,7 @@ class TabConfigurationException(TabException):
 
 class StaffException(TabException):
     def __init__(self, op, reason, str):
-        super().__init__("Staff operation cannot be performed: {0}, Reason: {1}. str={2}".format(op, reason, str))
+        super().__init__("Staff operation cannot be performed: \"{0}\", Reason: {1}. str={2}".format(op, reason, str))
 
 class StaffOutOfBoundsException(TabException):
     def __init__(self, reason, viol):

@@ -56,7 +56,7 @@ class StaffString:
 
         self.buf = list()
         for i in range(0, StaffString.STAFF_HEIGHT):
-            if restrict:
+            if restrict: # fill only lines within height of the bass clef
                 if i <= StaffString.BASS_CLEF_BTM and i >= StaffString.BASS_CLEF_TOP:
                     if str == StaffString.DEFAULT_STR:
                         if i % 2 == 0:
@@ -67,7 +67,7 @@ class StaffString:
                         self.buf.append(str)
                 else:
                     self.buf.append(" ")
-            else:
+            else: # fill entire buffer
                 self.buf.append(str)
 
     """
@@ -87,7 +87,7 @@ class StaffString:
 
     Raises a StaffOutOfBoundsException if checkIndex(index) fails.
     """
-    def getIndex(self, index):
+    def getRowAtIndex(self, index):
         StaffString.checkIndex(index)
         return self.buf[index]
 
@@ -101,7 +101,7 @@ class StaffString:
     Raises a StaffOutOfBoundsException if str is too long or too short to be placed in this StaffString or if StaffString.checkIndex() fails.
     Raises a StaffException if str=="\n". Use union(StaffString.newLineStaffString) instead to
     """
-    def setIndex(self, index, str):
+    def updateIndexToStr(self, index, str):
         if len(str) != self.width:
             raise StaffOutOfBoundsException("cannot update row to provided String's size", len(str))
         if str == "\n":
@@ -125,39 +125,40 @@ class StaffString:
         self.buf = newBuf
 
     """
-    Returns True if a given row in the StaffString is empty except for " " characters.
+    Returns True if a given row in the StaffString is empty except for whitespace characters.
 
     params:
     index - the index of the desired row
     """
     def rowIsEmpty(self, index):
-        return len(self.buf[index].strip("\n ")) == 0
+        return len(self.buf[index].strip("\n\t ")) == 0
 
     """
     Returns a String representation of this StaffString object.
     """
     def __str__(self):
         out = list()
+        # Trim the output: that is, all empty rows above and below the highest and lowest non-empty rows of the StaffString are ignored. Trimming is stopped at the bounds of the bass clef.
         i = StaffString.STAFF_HEIGHT - 1
         while i > StaffString.BASS_CLEF_BTM and self.rowIsEmpty(i):
             i -= 1
         j = 0
         while j < StaffString.BASS_CLEF_TOP and self.rowIsEmpty(j):
             j += 1
-        lastNewLine = -1
-        w = 0
+        lastNewLine = -1 # tracks the index of the last detected newline column (note - newline characters will only appear in columns due to StaffString.newLineStaffString)
+        w = 0 # iterates over the width of the StaffString
         while w < self.width:
-            for k in range(j, i + 1):
-                w = lastNewLine + 1
-                ln = ""
+            for k in range(j, i + 1): # Iterates over rows that have been chosen by trimming process
+                w = lastNewLine + 1 # start iteration at next non-newline column
+                ln = "" # temp. var. that holds the line to be added to the output, constructed in the following loop which iterates column by column until either the width has been reached or a newline col. has been reached
                 while w < self.width and self.buf[k][w] != "\n":
                     ln += self.buf[k][w]
                     w += 1
                 out.append(ln)
-            if w < self.width:
+            if w < self.width: # if it was the latter while condition that terminated the loop, record the last newline col.
                 lastNewLine = w
-            out.append("\n")
-        return "\n".join(out)
+            out.append("\n") # add a separater line to the output that has the "newline" effect on regular strings
+        return "\n".join(out) # return a string that puts all the created lines on separate lines
 
 """
 Script that loads the StaffString version of "\n" after the class has been compiled when this file is imported.

@@ -45,7 +45,7 @@ class Logger:
     Raises LoggingException if the log file cannot be opened properly.
     """
     def open(self):
-        try:
+        try: # try to open the log file and mark a new session being started if opening was successful. Wrap any IOError that occurs as a LoggingException.
             self.logFile = open(Logger.LOG_FILENAME,"a+")
             self.newSession = True
         except IOError as i:
@@ -65,14 +65,14 @@ class Logger:
             raise LoggingException("logging", "log file (" + Logger.LOG_FILENAME + ") has not been opened. Use open().")
         if self.logFile.closed:
             raise LoggingException("logging", "log file (" + Logger.LOG_FILENAME + ") has been closed. Re-open using open().")
-        try:
-            time = str(datetime.now())
-            if self.newSession:
+        try: # try to log to the log file and wrap any IOError that occurs as a LoggingException
+            time = str(datetime.now()) # mark date & time of log
+            if self.newSession: # if this is the beginning of a new session, log that and mark the session is no longer new.
                 self.logFile.write("\n[{0}][{1}] New Log Session started.\n".format(time, Logger.LOG))
                 self.newSession = False
-            self.logFile.write("[{0}][{1}] {2}\n".format(time, type, msg))
+            self.logFile.write("[{0}][{1}] {2}\n".format(time, type, msg)) # log the actual message with the provided type.
         except IOError as i:
-            self.close()
+            self.close() # if an error has occurred, close log file to avoid resource leak
             raise LoggingException("logging", "I/O Error when trying to write to log file after it was opened ("+ Logger.LOG_FILENAME +"): " + str(i))
 
     """
@@ -83,4 +83,5 @@ class Logger:
     def close(self):
         if self.logFile is None:
             raise LoggingException("closing", "log file ("+ Logger.LOG_FILENAME +") was never opened.")
+        self.newSession = False # in case log() was never called, mark session ended anyway
         self.logFile.close()

@@ -55,11 +55,13 @@ class ConfigReader:
     Infinite recursion is prevented by only trying to build the default configuration file again once. If that cannot be done (signified by a raised
     TabConfigurationException - see buildDefaultConfigFile() doc.), method just exits.
 
+    Returns whether or not the config file was found. Thus, True indicates a config file could be found and was loaded. False indicates the default file was built and read.
+
     raises TabConfigurationException if there was an I/O error opening config file or if buildDefaultConfigFile() fails.
     """
     def readConfigFile(self):
         if ConfigReader.configFileFound():
-            try:
+            try: # since a config file has been found, try to read it. Ignore lines marked as comments or that are empty. Wrap any IOErrors as TabConfigurationExceptions.
                 with open(ConfigReader.CONFIG_FILENAME) as configFile:
                     for line in configFile:
                         if not line.startswith(ConfigReader.COMMENT):
@@ -69,7 +71,7 @@ class ConfigReader:
                 return True
             except IOError as i:
                 raise TabConfigurationException(reason="I/O error opening config. file: " + i)
-        else:
+        else: # since a config file could not be found, build the default one and call this method again.
             ConfigReader.buildDefaultConfigFile()
             self.readConfigFile()
             return False
@@ -85,12 +87,12 @@ class ConfigReader:
     """
     def getSetting(self, lineNum, id):
         self.checkConfigFileLoaded()
-        if not self.lines[lineNum].startswith(id):
+        if not self.lines[lineNum].startswith(id): # option's setting line must start with option's id
             raise TabConfigurationException(reason="improper ID. Must be {0}.".format(id), line=lineNum)
         idx = self.lines[lineNum].find("=")
-        if idx < 0:
+        if idx != len(id): # option id and setting must be separated by an "="
             raise TabConfigurationException(reason="missing \"=\".", line=lineNum)
-        return self.lines[lineNum][idx+1:]
+        return self.lines[lineNum][idx+1:] # setting is whatever follows the "="
 
     """
     Returns True if the user specified that timing has been supplied and False if the user specified the opposite
@@ -99,12 +101,12 @@ class ConfigReader:
     be recognized.
     """
     def getTiming(self):
-        setting = self.getSetting(0, ConfigReader.TIMING_SUPPLIED_ID)
+        setting = self.getSetting(0, ConfigReader.TIMING_SUPPLIED_ID) # timing supplied option must be on line 0
         if setting == ConfigReader.SETTING_YES:
             return True
         elif setting == ConfigReader.SETTING_NO:
             return False
-        else:
+        else: # only 2 allowed settings are True or False
             raise TabConfigurationException(reason="setting {0} not recognized. Must be {1} or {2}".format(setting, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO), line=1)
 
     """
@@ -113,11 +115,13 @@ class ConfigReader:
     Raises TabConfigurationException if getSetting() failed on the config file for the gapsize option or if the setting found in the config file was not a non-negative integer
     """
     def getGapsize(self):
-        setting = self.getSetting(1, ConfigReader.GAPSIZE_ID)
+        setting = self.getSetting(1, ConfigReader.GAPSIZE_ID) # gapsize option must be on line 1
         try:
             gapSize = int(setting)
             if gapSize < 0:
-                raise ValueError
+                raise ValueError()
+        # 2 sources of ValueErrors in try-statement: (1) setting is not an int, raised by int(). (2) ValueError manually raised by gapSize < 0. One is manually raised because both
+        # possible problems with the gapSize both fall under a "value" problem. These can be easily grouped into the same error message.
         except ValueError:
             raise TabConfigurationException(reason="setting {0} not recognized. Must be a non-negative integer.".format(setting), line=2)
         return gapSize
@@ -133,8 +137,8 @@ class ConfigReader:
 
         defaultConfig = "# This is the configuration file for the tab reader program. \n# You can leave comments throughout this file by starting each comment line with a hashtag, like with Python.\n"+ConfigReader.TIMING_SUPPLIED_ID+"="+DEFAULT_TIMING_SUPPLIED+"\n"+ConfigReader.GAPSIZE_ID+"="+str(DEFAULT_GAPSIZE)
 
-        try:
+        try: # try to write the default configuration to the config file, wrap any IOError that occurs as a TabConfigurationException
             with open(ConfigReader.CONFIG_FILENAME, "w+") as configFile:
                 configFile.write(defaultConfig)
         except IOError as i:
-            raise TabConfigurationException(reason="configuration file could not be created")
+            raise TabConfigurationException(reason="configuration file could not be created; an I/O Error occurred: " + str(i))
