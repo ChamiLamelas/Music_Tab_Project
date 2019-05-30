@@ -1,5 +1,5 @@
 """
-This file parses the input file, loads the data into objects of the following types, and then uses their fields/methods to output an HTML file that holds tablature
+This file parses the input file, loads the data into objects of the following types, and then uses their fields/methods to output an HTML file that holds sheet music.
 created from the stored data and using the StaffString class from the display utility library. There are no new types defined in this file, however, this is the
 file that runs the overall program.
 
@@ -7,7 +7,7 @@ author: Chami Lamelas
 date: Summer 2019
 """
 
-from exceptionsLibrary import TabException, TabFileException, MeasureException, TabConfigurationException, LoggingException
+from exceptionsLibrary import TabException, TabFileException, MeasureException, TabConfigurationException, LoggingException, TabIOException
 from typeLibrary import Song, Measure, Slice
 from configUtils import ConfigReader
 from logging import Logger

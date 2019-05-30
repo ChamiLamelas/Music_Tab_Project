@@ -1,6 +1,6 @@
 """
 This file provides the ability through the ConfigReader class to read the configuration file used by tabReader.py and generate the default configuration file if needed.
-Note: you can add comments throughout the config file by starting every comment line with a hashtag "#" as with Python.
+Note: you can add comments throughout the config file by starting every comment line with a hashtag "#" as with Python. Comments can also be added at the end of config lines. Any characters after the "#" in a comment line will be ignored
 
 author: Chami Lamelas
 date: Summer 2019
@@ -67,6 +67,10 @@ class ConfigReader:
                         if not line.startswith(ConfigReader.COMMENT):
                             sLine = line.strip("\n\t ")
                             if len(sLine) > 0:
+                                # strip off any end of line comments
+                                idx = sLine.find(ConfigReader.COMMENT)
+                                if (idx > 0):
+                                    sLine = sLine[:-(len(sLine)-idx)]
                                 self.lines.append(sLine)
                 return True
             except IOError as i:

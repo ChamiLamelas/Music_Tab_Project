@@ -6,7 +6,7 @@ Types:
 Note - used by Slice, not used in tabReader.py
 Slice - used by Measure
 Measure - used by Song
-Song - ultimately holds full conversion from tab to tablature.
+Song - ultimately holds full conversion from tab to sheet music.
 
 In general, tabReader.py fills a Song with Slices and Measures and then gets the String representation of Song (which wraps a StaffString representation).
 
@@ -475,7 +475,7 @@ class Song:
         print(out + "||")
 
     """
-    Returns a tableture String representation of this Song using StaffString utility class and its String represenation.
+    Returns a sheet music String representation of this Song using StaffString utility class and its String represenation.
     """
     def __str__(self):
         MAX_ROW_WIDTH = 140 # maximum number of characters in a row of this Song. A row is some number of Measures.

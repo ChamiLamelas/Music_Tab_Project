@@ -1,7 +1,7 @@
 """
-This file holds classes that are used for displaying the data held in Slices, Measures, and Songs in tableture form in an HTML file.
+This file holds classes that are used for displaying the data held in Slices, Measures, and Songs in sheet music format in an HTML file.
 
-StaffString - a special "vertical" String type used for better display in tablature form.
+StaffString - a special "vertical" String type used for better display in sheet music format.
 
 In general, Slice, Measure, and Song objects all have StaffString representations.
 

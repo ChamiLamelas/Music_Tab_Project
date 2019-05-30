@@ -32,7 +32,7 @@ class TabFileException(TabException):
     README_LINK = ""
 
     def __init__(self, issue, reason):
-        super().__init__("Issue with the tab file: \"{0}\". Reason: {1}. Please review the input file and the guidelines outlined in the program README here {2}.".format(issue, reason, README_LINK))
+        super().__init__("Issue with the tab file: \"{0}\". Reason: {1}. Please review the input file and the guidelines outlined in the program README here {2}.".format(issue, reason, TabFileException.README_LINK))
 
 class TabIOException(TabException):
     def __init__(self, issue, reason):
