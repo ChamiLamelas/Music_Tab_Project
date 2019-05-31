@@ -12,7 +12,7 @@ This section will inform you of the necessary prerequisites to run this program,
 
 ### Prerequisites
 
-First, you need to install Python. This program was written and tested using *Python 3.7.2*. To download Python you can go [here](https://www.python.org/downloads/). Make sure that Python has been added to the system path.
+First, you need to install a version of Python **3**. Python 2.x is *NOT* supported. This program was written and tested using *Python 3.7.2*. To download Python you can go [here](https://www.python.org/downloads/). Make sure that Python has been added to the system path.
 Second, the program's output was tested in [Mozilla Firefox 67.0 (64-bit)](https://www.mozilla.org/en-US/firefox/new/) and [Google Chrome Version 74.0.3729.169 (Official Build) (64-bit)](https://www.google.com/chrome/) on Windows Version 10.0.17763.503. So, it may be best to download one of those browsers. Their download links are embedded in their names.
 
 ### Installing
@@ -37,14 +37,14 @@ The input tab files follow the general format of tabs found on [Ultimate Guitar 
 * space: " "
 * digits (0-9)
 
-**(2)** Lines that are meant to list the timings of notes that are played must be made up of *ONLY* the following characters:
+**(2)** lines that are meant to be strings must start with G, D, A, or E, followed by a "|", followed by a sequence of *ONLY* the following characters, end with a "|", and must be at least 4 characters long.
 
-* newline/carriage return: "\n"
-* tab: "\t"
-* tie marking: "+"
-* dot marking: "."
-* space: " "
-* *only* the uppercase letters that belong to the timing IDs {W, H, Q, E, S}
+newline/carriage return: "\n"
+tab: ""\t"
+vertical bar: "|"
+hyphen: "-"
+space: " "
+digits (0-9)
 
 These lines should only be present if the timing is supplied in the tab, which is usually not the case. Make sure that if the timing is supplied, the 1st configuration line (not counting empty lines or comments) should be
 
@@ -114,7 +114,7 @@ After the first time you run the program, a log file will be generated and place
 
 ### Using the Configuration File
 
-The configuration file is designed to provide the user more freedom in how the program runs. It may be best to examine the default configuration file before writing one on your own. And make sure it has the same name as the default configuration file. Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Errors in the configuration file are also reported to the log file.
+The configuration file is designed to provide the user more freedom in how the program runs. It may be best to examine the default configuration file before writing one on your own. And make sure it has the same name as the default configuration file. Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Comments can also be made after configuration lines by placing a "#". The program will ignore any text following the hashtag. Lastly, errors in the configuration file are also reported to the log file.
 
 **Important:** If you wish to write your own configuration file and provide different settings for the various options that can be configured in this program, make sure you put the new options and settings in the same order as in the default configuration file. Otherwise, an error will occur.
 

@@ -65,7 +65,7 @@ class ConfigReader:
                 with open(ConfigReader.CONFIG_FILENAME) as configFile:
                     for line in configFile:
                         if not line.startswith(ConfigReader.COMMENT):
-                            sLine = line.strip("\n\t ")
+                            sLine = "".join(line.split()) # remove any separating whitespace
                             if len(sLine) > 0:
                                 # strip off any end of line comments
                                 idx = sLine.find(ConfigReader.COMMENT)

@@ -131,7 +131,7 @@ class StaffString:
     index - the index of the desired row
     """
     def rowIsEmpty(self, index):
-        return len(self.buf[index].strip("\n\t ")) == 0
+        return len(self.buf[index].split()) == 0
 
     """
     Returns a String representation of this StaffString object.

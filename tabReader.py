@@ -3,6 +3,9 @@ This file parses the input file, loads the data into objects of the following ty
 created from the stored data and using the StaffString class from the display utility library. There are no new types defined in this file, however, this is the
 file that runs the overall program.
 
+Compatibility Note: The definition of checkStringLine() and checkNoteLine() below are what makes this program not compatible with Python 2.x. Since Python 3 strings are represented in Unicode,
+the string.translate() method was changed. This method now requires a single argument, a translation table, which is different from the string.translate() method in Python 2.
+
 author: Chami Lamelas
 date: Summer 2019
 """
@@ -101,9 +104,9 @@ def buildSong(song, notes, gString, dString, aString, eString):
             i = i + 1
 
 """
-Returns whether a line that has been stripped of "\n" is a line representing the note timings.
+Returns whether a line that has been stripped on the ends of whitespace is a line representing the note timings.
 
-lines that are meant to list the timings of notes that are played must be made up of ONLY the following characters:
+lines that are meant to list the timings of notes that are played must be made up of ONLY the following characters.
 
 newline/carriage return: "\n"
 tab: "\t"
@@ -115,25 +118,24 @@ space: " "
 def checkNoteLine(line):
     if len(line) == 0:
         return False
-    return len(line.strip("\t+. "+"".join([key for key in Slice.lengths]))) == 0
+    return len(line.translate({ord(c) : None for c in "\t+. WHQES"})) == 0
 
 """
-Returns whether a line that has been stripped of "\n" is a line reprsenting a string.
+Returns whether a line that has been stripped on the ends of whitespace is a line representing a string.
 
-lines that are meant to be strings must be only made up of ONLY the following characters AND must end with a vertical bar:
+lines that are meant to be strings must start with G, D, A, or E, followed by a "|", followed by a sequence of only the following characters, end with a "|", and must be at least 4 characters long.
 
 newline/carriage return: "\n"
 tab: ""\t"
-*only* the uppercase letters that belong to the set of bass string ids {G, D, A, E}
 vertical bar: "|"
 hyphen: "-"
 space: " "
 digits (0-9)
 """
 def checkStringLine(line):
-    if len(line) == 0:
+    if len(line) < 4:
         return False
-    return len(line.strip("\tGDAE|-()0123456789 ")) == 0 and line.endswith("|")
+    return line[0] in "GDAE" and line[1] == "|" and len(line[1:].translate({ord(c) : None for c in "\t|-()0123456789 "})) == 0 and line.endswith("|")
 
 """
 Takes a String list of the lines of the input file and loads the input into 4 (or 5) arrays. This will be the first representation of the notes in the song, where each string of
@@ -156,7 +158,7 @@ def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTimi
     count = 0 # count of lines that are either string lines or timing lines
     lastNoteExt = 0 # length of prev. timing line. This will be extended as explained in the method doc.
     for line in lines:
-        sLine = line.strip("\n")
+        sLine = line.strip()
         arr = list(sLine) # array rep. of file line stripped of carriage return
         if hasTiming: # if user has specified that timing was supplied -> read lines in groups of 5, and note lines must be checked for
             if count % 5 == 0: # if any multiple of 5 lines has been read, the next line should be a note line if input file is valid.
