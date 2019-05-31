@@ -44,7 +44,7 @@ class Note:
             if nFret < 0 or nFret > MAX_FRET:
                 raise ValueError()
         except ValueError as v:
-            raise TabFileException("invalid fret value ", "Fret cannot be {0}, it must be an integer in the range [0, {0}]".format(nFret, MAX_FRET))
+            raise TabFileException("invalid fret value ", "Fret cannot be \"{0}\", it must be an integer in the range [0, {0}]".format(nFret, MAX_FRET))
         halfsteps = -1 # number of halfsteps from lowest E on bass
         if string == "E":
             halfsteps = nFret
@@ -55,7 +55,7 @@ class Note:
         elif string == "G":
             halfsteps = nFret + 15
         else:
-            raise TabFileException("invalid string name", "{0} is not a valid string id. Please review string identification.".format(string))
+            raise TabFileException("invalid string name", "\"{0}\" is not a valid string id. Please review string identification.".format(string))
 
         # order holds the ordering of notes on the guitar starting with the letter corresponding to the lowest note on the bass and for a given index i in order,
         # counts[i] holds the number of staff positions (lines & spaces) before orders[i] on the staff.
@@ -209,7 +209,7 @@ class Slice:
     """
     def checkLengthSymbol(symbol):
         if symbol not in Slice.lengths:
-            raise TabFileException("symbol not recognized", "{0} is not a valid symbol. Please review symbol identification".format(symbol))
+            raise TabFileException("symbol not recognized", "\"{0}\" is not a valid symbol. Please review symbol identification".format(symbol))
 
     """
     Updates a Slice's length with a given length symbol taken from input file's set of length symbols.

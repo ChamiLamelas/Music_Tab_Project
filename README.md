@@ -13,6 +13,7 @@ This section will inform you of the necessary prerequisites to run this program,
 ### Prerequisites
 
 First, you need to install a version of Python **3**. Python 2.x is *NOT* supported. This program was written and tested using *Python 3.7.2*. To download Python you can go [here](https://www.python.org/downloads/). Make sure that Python has been added to the system path.
+
 Second, the program's output was tested in [Mozilla Firefox 67.0 (64-bit)](https://www.mozilla.org/en-US/firefox/new/) and [Google Chrome Version 74.0.3729.169 (Official Build) (64-bit)](https://www.google.com/chrome/) on Windows Version 10.0.17763.503. So, it may be best to download one of those browsers. Their download links are embedded in their names.
 
 ### Installing
@@ -27,30 +28,37 @@ Make sure that *every* file you download is put in the *same* folder.
 
 The input tab files follow the general format of tabs found on [Ultimate Guitar Tabs](https://www.ultimate-guitar.com/). Here are some rules on how you should be structuring your input files:
 
-**(1)** Lines that are meant to be strings must be only made up of *ONLY* the following characters *AND* must end with a vertical bar:
+**(1)** Lines that are meant to be strings must satisfy the following 4 properties:
+
+*(i)* Start with  G, D, A, or E followed by a "|" or just a "|"
+*(ii)* Following either case of (i), a sequence of only the following characters:
 
 * newline/carriage return: "\n"
-* tab: "\t"
-* *only* the uppercase letters that belong to the set of bass string ids {G, D, A, E}
+* tab: ""\t"
 * vertical bar: "|"
 * hyphen: "-"
 * space: " "
 * digits (0-9)
 
-**(2)** lines that are meant to be strings must start with G, D, A, or E, followed by a "|", followed by a sequence of *ONLY* the following characters, end with a "|", and must be at least 4 characters long.
+*(iii)* End with a "|"
+*(iv)* Be at least 4 characters long
+
+**(2)** Lines that are meant to list the timings of notes that are played must be made up of *ONLY* the following characters.
 
 newline/carriage return: "\n"
-tab: ""\t"
-vertical bar: "|"
-hyphen: "-"
+tab: "\t"
+tie marking: "+"
+dot marking: "."
 space: " "
-digits (0-9)
+*only* the uppercase letters that signify a length of time, which are: W, H, Q, S, and E
 
-These lines should only be present if the timing is supplied in the tab, which is usually not the case. Make sure that if the timing is supplied, the 1st configuration line (not counting empty lines or comments) should be
+These lines should *only* be present if the timing is supplied in the tab, which is usually not the case. Make sure that if the timing is supplied, the 1st configuration line in the configuration file (not counting empty lines or comments) should be
 
 ```
 timingsupplied=true
 ```
+
+More on the configuration file is discussed below in the subsection "Using the Configuration File".
 
 **(3)** The timing letter ID that signifies the length of a note is assumed to be located above the first digit of the fret that the note corresponds to. For example, if note on the E-string 10th fret (D) is meant to be a quarter note, the portion of the input tab that corresponds to this should appear as so:
 
@@ -96,7 +104,11 @@ E|-8--|
 
 ## Running the Program
 
-Once you have installed the required files and have a tab file, say located at "C:\\Users\\Chami\\Desktop\\test_tab.txt", open your operating system's command line. First, navigate to the directory where you have installed the source files and run the following command:
+Once you have installed the required files and have a tab file, say located at "C:\\Users\\Chami\\Desktop\\test_tab.txt", open your operating system's command line. Make sure you have retrieved your input file's **full** path unless the input file also resides in the same directory as the Python source files.
+
+First, navigate to the directory where you have installed the Python source files. This is because the command below assumes "tabReader.py" is in the current working directory.
+
+Now, run the following command:
 
 ```
 py tabReader.py C:\\Users\\Chami\\Desktop\\test_tab.txt
@@ -114,7 +126,9 @@ After the first time you run the program, a log file will be generated and place
 
 ### Using the Configuration File
 
-The configuration file is designed to provide the user more freedom in how the program runs. It may be best to examine the default configuration file before writing one on your own. And make sure it has the same name as the default configuration file. Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Comments can also be made after configuration lines by placing a "#". The program will ignore any text following the hashtag. Lastly, errors in the configuration file are also reported to the log file.
+The configuration file is designed to provide the user more freedom in how the program runs. It may be best to examine the default configuration file before writing one on your own and make sure it has the same name as the default configuration file. If you are using Windows, I would recommend using WordPad if you do not have another text editor such as Atom or Notepad++ to open the config file, as Notepad doesn't display the line breaks in the default config file. 
+
+Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Comments can also be made after configuration lines by placing a "#". The program will ignore any text following the hashtag. Lastly, errors in the configuration file are also reported to the log file.
 
 **Important:** If you wish to write your own configuration file and provide different settings for the various options that can be configured in this program, make sure you put the new options and settings in the same order as in the default configuration file. Otherwise, an error will occur.
 

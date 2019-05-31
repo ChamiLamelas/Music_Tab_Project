@@ -18,6 +18,8 @@ author: Chami Lamelas
 date: Summer 2019
 """
 
+README_LINK = "https://github.com/LiquidsShadow/Music_Tab_Project/blob/master/README.md"
+
 class TabException(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -29,21 +31,17 @@ class MeasureException(TabException):
         super().__init__("Operation on Measure failed: {0}. Reason: {1}.".format(op, reason))
 
 class TabFileException(TabException):
-    README_LINK = ""
-
     def __init__(self, issue, reason):
-        super().__init__("Issue with the tab file: \"{0}\". Reason: {1}. Please review the input file and the guidelines outlined in the program README here {2}.".format(issue, reason, TabFileException.README_LINK))
+        super().__init__("Issue with the tab file: \"{0}\". Reason: {1}. Please review the input file and the guidelines outlined in the program README here {2}..".format(issue, reason, README_LINK))
 
 class TabIOException(TabException):
     def __init__(self, issue, reason):
         super().__init__("I/O Error with \"{0}\". Reason: {1}.".format(issue, reason))
 
 class TabConfigurationException(TabException):
-    DEFAULT_CONFIG_LINK = ""
-
     # first line in the file is line 1.
     def __init__(self, reason="not specified", line=0):
-        super().__init__("Program configuration failed. Error on line {0}. Reason: {1}. If you cannot solve the problem, please utilize the default configuration file located at {2}.".format(line, reason, TabConfigurationException.DEFAULT_CONFIG_LINK))
+        super().__init__("Program configuration failed. Error on line {0}. Reason: {1}. If you cannot solve the problem, please replace the configuration file with the default version. See the README at {2}.".format(line, reason, README_LINK))
 
 class StaffException(TabException):
     def __init__(self, op, reason, str):

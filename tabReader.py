@@ -5,7 +5,7 @@ file that runs the overall program.
 
 Compatibility Note: The definition of checkStringLine() and checkNoteLine() below are what makes this program not compatible with Python 2.x. Since Python 3 strings are represented in Unicode,
 the string.translate() method was changed. This method now requires a single argument, a translation table, which is different from the string.translate() method in Python 2.
-While string.strip() seems to work for the purposes of these methods, it appears to be much slower than string.translate() as each combination of the passed arguments is run through and stripped. 
+While string.strip() seems to work for the purposes of these methods, it appears to be much slower than string.translate() as each combination of the passed arguments is run through and stripped.
 
 author: Chami Lamelas
 date: Summer 2019
@@ -124,7 +124,10 @@ def checkNoteLine(line):
 """
 Returns whether a line that has been stripped on the ends of whitespace is a line representing a string.
 
-lines that are meant to be strings must start with G, D, A, or E, followed by a "|", followed by a sequence of only the following characters, end with a "|", and must be at least 4 characters long.
+lines that are meant to be strings must:
+
+(i) Start with  G, D, A, or E followed by a "|" or just a "|"
+(ii) Following either case of (i), a sequence of only the following characters:
 
 newline/carriage return: "\n"
 tab: ""\t"
@@ -132,11 +135,14 @@ vertical bar: "|"
 hyphen: "-"
 space: " "
 digits (0-9)
+
+(iii) End with a "|"
+(iv) Be at least 4 characters long
 """
 def checkStringLine(line):
     if len(line) < 4:
         return False
-    return line[0] in "GDAE" and line[1] == "|" and len(line[1:].translate({ord(c) : None for c in "\t|-()0123456789 "})) == 0 and line.endswith("|")
+    return ((line[0] in "GDAE" and line[1] == "|") or line.startswith("|")) and len(line[1:].translate({ord(c) : None for c in "\t|-()0123456789 "})) == 0 and line.endswith("|")
 
 """
 Takes a String list of the lines of the input file and loads the input into 4 (or 5) arrays. This will be the first representation of the notes in the song, where each string of
@@ -159,7 +165,7 @@ def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTimi
     count = 0 # count of lines that are either string lines or timing lines
     lastNoteExt = 0 # length of prev. timing line. This will be extended as explained in the method doc.
     for line in lines:
-        sLine = line.strip()
+        sLine = line.rstrip("\n\t ")
         arr = list(sLine) # array rep. of file line stripped of carriage return
         if hasTiming: # if user has specified that timing was supplied -> read lines in groups of 5, and note lines must be checked for
             if count % 5 == 0: # if any multiple of 5 lines has been read, the next line should be a note line if input file is valid.
@@ -197,7 +203,7 @@ def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTimi
                     eString.extend(arr)
                 count += 1
             # else, skip the line
-    if (hasTiming and count % 5 != 0) or (hasTiming and count % 4 != 0): # if timing was supplied, count should be a multiple of 5 and if not it should be a multiple of 4
+    if (hasTiming and count % 5 != 0) or (not hasTiming and count % 4 != 0): # if timing was supplied, count should be a multiple of 5 and if not it should be a multiple of 4
         errorMsg = ""
         if hasTiming:
             errorMsg = "The number of lines interpreted as strings and timing identifiers {0} is incorrect, should be a multiple of 5".format(count)
