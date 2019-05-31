@@ -5,6 +5,7 @@ file that runs the overall program.
 
 Compatibility Note: The definition of checkStringLine() and checkNoteLine() below are what makes this program not compatible with Python 2.x. Since Python 3 strings are represented in Unicode,
 the string.translate() method was changed. This method now requires a single argument, a translation table, which is different from the string.translate() method in Python 2.
+While string.strip() seems to work for the purposes of these methods, it appears to be much slower than string.translate() as each combination of the passed arguments is run through and stripped. 
 
 author: Chami Lamelas
 date: Summer 2019
