@@ -28,29 +28,27 @@ Make sure that *every* file you download is put in the *same* folder.
 
 The input tab files follow the general format of tabs found on [Ultimate Guitar Tabs](https://www.ultimate-guitar.com/). Here are some rules on how you should be structuring your input files:
 
-**(1)** Lines that are meant to be strings must satisfy the following 4 properties:
+**(1)** Lines that are meant to be strings must satisfy the following 5 properties.
 
-*(i)* Start with  G, D, A, or E followed by a "|" or just a "|"
-*(ii)* Following either case of (i), a sequence of only the following characters:
+*(i)* Any whitespace must be at either the front or rear of the line, **none** in between measures or notes.
+*(ii)* The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"
+*(iii)* Following either case of *(ii)*, a sequence of *ONLY* the following characters:
 
-* newline/carriage return: "\n"
-* tab: ""\t"
 * vertical bar: "|"
 * hyphen: "-"
-* space: " "
 * digits (0-9)
 
-*(iii)* End with a "|"
-*(iv)* Be at least 4 characters long
+*(iv)* The last non-whitespace character must be a "|"
+*(v)* Be at least 4 characters long, not counting the whitespace at either end.
 
-**(2)** Lines that are meant to list the timings of notes that are played must be made up of *ONLY* the following characters.
+**(2)** Lines that are meant to list the timings of notes that are played must be made up of *ONLY* the following characters and must contain at least **1** non-whitespace character.
 
-newline/carriage return: "\n"
-tab: "\t"
-tie marking: "+"
-dot marking: "."
-space: " "
-*only* the uppercase letters that signify a length of time, which are: W, H, Q, S, and E
+* newline/carriage return: "\n" (at the end)
+* tab: "\t"
+* tie marking: "+"
+* dot marking: "."
+* space: " "
+* *only* the uppercase letters that denote lengths of time: W, H, Q, E, and S
 
 These lines should *only* be present if the timing is supplied in the tab, which is usually not the case. Make sure that if the timing is supplied, the 1st configuration line in the configuration file (not counting empty lines or comments) should be
 
@@ -102,6 +100,16 @@ E|-8--|
 
 **Warning:** Not every possible problem with an input tab file is listed above. The error reporting system outlined in the exceptions library is meant to assist in helping prepare a correct input tab file.
 
+### Tab Characters in the Input File
+
+It is quite possible for the lines that contain the timing identifiers to contain tab characters ("\t"), especially if the user has decided to spread out the notes in the string lines. Due to the way that the program parses the input and assigns notes their length of time, the tab character causes problems. To solve this issue, the program will replace all tabs found in the timing lines with the number of spaces that correspond to a tab. By default, this is 8 spaces. However, in some text editors the number of spaces in a tab can be changed. Therefore, in the configuration file, a setting was added to specify how many spaces a tab should be replaced with. It is by default, set to 8:
+
+```
+tabspacing=8
+```
+
+Thus, before running the program, please check the number of spaces that are in a tab character for your text editor. For Windows users, Notepad follows the default and assigns each tab character to be equal to 8 spaces. Thus, you do not have to do anything in this case.
+
 ## Running the Program
 
 Once you have installed the required files and have a tab file, say located at "C:\\Users\\Chami\\Desktop\\test_tab.txt", open your operating system's command line. Make sure you have retrieved your input file's **full** path unless the input file also resides in the same directory as the Python source files.
@@ -120,13 +128,13 @@ After you run the program, an output HTML file encoded in *UTF-8* will be genera
 
 ### The Log File
 
-After the first time you run the program, a log file will be generated and placed in the same folder. All program output will be placed into this file unless the logging itself fails. This includes any errors that are reported, so this file should be checked to make sure your program ran successfully. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from.
+After the first time you run the program, a log file will be generated and placed in the same folder. All program output will be placed into this file unless the logging itself fails. This includes any errors that are reported, so this file should be checked in addition to the output file to make sure your program ran successfully. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from.
 
 **Note:** If a logging error occurs, that will be printed to the console.
 
 ### Using the Configuration File
 
-The configuration file is designed to provide the user more freedom in how the program runs. It may be best to examine the default configuration file before writing one on your own and make sure it has the same name as the default configuration file. If you are using Windows, I would recommend using WordPad if you do not have another text editor such as Atom or Notepad++ to open the config file, as Notepad doesn't display the line breaks in the default config file. 
+The configuration file is designed to provide the user more freedom in how the program runs. It may be best to examine the default configuration file before writing one on your own and make sure it has the same name as the default configuration file. If you are using Windows, I would recommend using WordPad if you do not have another text editor such as Atom or Notepad++ to open the config file, as Notepad doesn't display the line breaks in the default config file.
 
 Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Comments can also be made after configuration lines by placing a "#". The program will ignore any text following the hashtag. Lastly, errors in the configuration file are also reported to the log file.
 

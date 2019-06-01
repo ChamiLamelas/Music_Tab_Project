@@ -23,11 +23,12 @@ TIMING_SUPPLIED_ID - id of the option that signifes timing is supplied (that is 
 class ConfigReader:
 
     CONFIG_FILENAME = "tabReader.config"
+    COMMENT = "#"
     SETTING_YES = "true"
     SETTING_NO = "false"
     TIMING_SUPPLIED_ID = "timingsupplied"
     GAPSIZE_ID = "gapsize"
-    COMMENT = "#"
+    TAB_SPACING_ID = "tabspacing"
 
     """
     Constructs an empty ConfigReader. Use readConfigFile() to load the configuration file into this object.
@@ -127,8 +128,24 @@ class ConfigReader:
         # 2 sources of ValueErrors in try-statement: (1) setting is not an int, raised by int(). (2) ValueError manually raised by gapSize < 0. One is manually raised because both
         # possible problems with the gapSize both fall under a "value" problem. These can be easily grouped into the same error message.
         except ValueError:
-            raise TabConfigurationException(reason="setting {0} not recognized. Must be a non-negative integer.".format(setting), line=2)
+            raise TabConfigurationException(reason="setting \"{0}\" not recognized. Must be a non-negative integer.".format(setting), line=2)
         return gapSize
+
+    """
+    Returns the tab spacing of the editor used to create the input text file. By default the spacing is 8, but modern text editors allow for the number of spaces in a tab character to be reduced.
+    This provides a way for the user to specify that.
+
+    Raises TabConfigurationException if getSetting() failed on the config file for the tab spacing option or if the setting found in the config file was not a non-negative integer
+    """
+    def getTabSpacing(self):
+        setting = self.getSetting(2, ConfigReader.TAB_SPACING_ID) # tab spacing option must be on line 2
+        try:
+            tabSpacing = int(setting)
+            if tabSpacing < 0:
+                raise ValueError()
+        except ValueError: # see note on ValueError handling in getGapsize() above
+            raise TabConfigurationException(reason="setting \"{0}\" not recognized. Must be a non-negative integer.".format(setting), line=3)
+        return tabSpacing
 
     """
     Builds the default config file. WARNING: calling this method will overwrite any pre-existing file with the same path as this program's config file.
@@ -138,8 +155,9 @@ class ConfigReader:
     def buildDefaultConfigFile():
         DEFAULT_TIMING_SUPPLIED = ConfigReader.SETTING_NO
         DEFAULT_GAPSIZE = 3
+        DEFAULT_TAB_SPACING = 8
 
-        defaultConfig = "# This is the configuration file for the tab reader program. \n# You can leave comments throughout this file by starting each comment line with a hashtag, like with Python.\n"+ConfigReader.TIMING_SUPPLIED_ID+"="+DEFAULT_TIMING_SUPPLIED+"\n"+ConfigReader.GAPSIZE_ID+"="+str(DEFAULT_GAPSIZE)
+        defaultConfig = "# This is the configuration file for the tab reader program. \n# You can leave comments throughout this file by starting each comment line with a hashtag, like with Python.\n"+ConfigReader.TIMING_SUPPLIED_ID+"="+DEFAULT_TIMING_SUPPLIED+"\n"+ConfigReader.GAPSIZE_ID+"="+str(DEFAULT_GAPSIZE)+"\n"+ConfigReader.TAB_SPACING_ID+"="+str(DEFAULT_TAB_SPACING)
 
         try: # try to write the default configuration to the config file, wrap any IOError that occurs as a TabConfigurationException
             with open(ConfigReader.CONFIG_FILENAME, "w+") as configFile:
