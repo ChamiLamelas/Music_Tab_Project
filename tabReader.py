@@ -16,6 +16,7 @@ from configUtils import ConfigReader
 from logging import Logger
 from sys import argv
 import time
+import traceback
 
 """
 Returns whether a line with the following 3 properties is a timing line:
@@ -32,6 +33,9 @@ tie marking: "+"
 dot marking: "."
 space: " "
 *only* the uppercase letters that denote lengths of time: W, H, Q, E, and S
+
+params:
+line - a line who satisfies (i)-(iii) that will be checked to see if it satisfies the above property
 """
 def checkNoteLine(line):
     return len(line.translate({ord(c) : None for c in "+. WHQES"})) == 0
@@ -44,21 +48,26 @@ Returns whether a line with the following 2 properties represents a string line:
 
 Lines that are meant to be strings must:
 
-(i) The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"
-(ii) Following either case of (i), a sequence of only the following characters:
+(a) The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"
+(b) Following either case of (i), a sequence of only the following characters:
 
 vertical bar: "|"
 hyphen: "-"
 digits (0-9)
 
-(iii) The last non-whitespace character must be a "|"
-(iv) Be at least 4 characters long, not counting the whitespace at either end.
+(c) The last non-whitespace character must be a "|"
+(d) Be at least 4 characters long, not counting the whitespace at either end.
+
+params:
+line - a line who satisfies (i) and (ii) that will be checked if it satisfies (a)-(d)
+legend - set of characters that are allowed in strings
 """
-def checkStringLine(line):
-    line = line.lstrip() # strip any whitespace at the start before checking properties (i) - (iv)
+def checkStringLine(line, legend):
+    line = line.lstrip() # strip any whitespace at the start before checking properties (a) - (d)
     if len(line) < 4:
         return False
-    return ((line[0] in "GDAE" and line[1] == "|") or line.startswith("|")) and len(line[1:].translate({ord(c) : None for c in "|-()0123456789"})) == 0 and line.endswith("|")
+    checkSet = set("|-0123456789").union(legend)
+    return ((line[0] in "GDAE" and line[1] == "|") or line.startswith("|")) and len(line[1:].translate({ord(c) : None for c in checkSet})) == 0 and line.endswith("|")
 
 """
 Takes a String list of the lines of the input file and loads the input into 4 (or 5) arrays. This will be the first representation of the notes in the song, where each string of
@@ -74,11 +83,12 @@ aString - array representing a-string
 eString - array representing e-string
 hasTiming - truth value of timing being supplied (taken from config file)
 tabSpacing - number of spaces in a tab character in the editor used for creating the input file
+legend - set of characters that are allowed in strings
 
 Raises TabFileException if the number of lines interpreted as either timing information and strings is incorrect. To see how lines are interpreted see the docs. for the 2 methods
 above.
 """
-def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing, hasExtra):
+def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing, hasExtra, legend):
     count = 0 # count of lines that are either string lines or timing lines
     lastNoteExt = 0 # length of prev. timing line. This will be extended as explained in the method doc.
     for line in lines:
@@ -103,7 +113,7 @@ def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTimi
                     lastNoteExt = len(arr)
                 # else, skip this line
             else: # other lines will be string lines
-                if not hasExtra or checkStringLine(sLine): # check that its a valid string line, if so add it to the appropriate string array and count it
+                if not hasExtra or checkStringLine(sLine, legend): # check that its a valid string line, if so add it to the appropriate string array and count it
                     if count % 5 == 1: # 1 line after a multiple of 5 is a g-string
                         gString.extend(arr)
                         # need to update the last addition to the notes list to add spaces to make the timing line of the input file have the same length as the g-string below it
@@ -120,7 +130,7 @@ def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTimi
                     count += 1
                 # else, skip the line
         else: # the user has specified that no timing was supplied -> read lines in groups of 4
-            if not hasExtra or checkStringLine(sLine): # check that this is a valid string line, if so add it to the appropriate string array and count it
+            if not hasExtra or checkStringLine(sLine, legend): # check that this is a valid string line, if so add it to the appropriate string array and count it
                 if count % 4 == 0: # if any multiple of 4 lines has been read, the next line should be a g-string
                     gString.extend(arr)
                 elif count % 4 == 1: # 1 line after a multiple of 4 is a d-string
@@ -258,6 +268,7 @@ def run(logger):
         hasTiming = rdr.getTiming()
         tabSpacing = rdr.getTabSpacing()
         hasExtra = rdr.getHasExtra()
+        legend = rdr.getLegend()
         Slice.loadMaps()
 
         notes = list()
@@ -273,7 +284,7 @@ def run(logger):
         except IOError as i:
             raise TabIOException("opening tab file", str(i))
 
-        loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing, hasExtra)
+        loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing, hasExtra, legend)
         logger.log("Data in input tab file {0} was loaded successfully into array representation. ".format(inFilename))
         song = Song(rdr.getGapsize())
         buildSong(song, notes, gString, dString, aString, eString)
@@ -308,6 +319,6 @@ try:
 except LoggingException as l:
     print(l)
 except Exception as e:
-    logger.log(msg="An unexpected error occurred: " + str(e), type=Logger.ERROR) #
+    logger.log(msg="An unexpected error occurred: " + str(traceback.format_exc()), type=Logger.ERROR)
 finally:
     logger.close()

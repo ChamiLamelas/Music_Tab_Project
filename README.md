@@ -100,6 +100,18 @@ E|-8--|
 
 **Warning:** Not every possible problem with an input tab file is listed above. The error reporting system outlined in the exceptions library is meant to assist in helping prepare a correct input tab file.
 
+## Using the Configuration File
+
+I have added this section before running the program because it is essential to understand how the configuration file works (and how you may need to change it) before trying to run the program.
+
+The configuration file is designed to provide the user more freedom in how the program behaves on input data. It may be best to examine the default configuration file before writing one on your own and make sure it has the same name as the default configuration file. If you are using Windows, I would recommend using WordPad if you do not have another text editor such as Atom or Notepad++ to open the config file, as Notepad doesn't display the line breaks in the default config file.
+
+Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Comments can also be made after configuration lines by placing a "#". The program will ignore any text following the hashtag. Lastly, errors in the configuration file are also reported to the log file.
+
+**Important:** If you wish to write your own configuration file and provide different settings for the various options that can be configured in this program, make sure you put the new options and settings in the same order as in the default configuration file. Otherwise, an error will occur.
+
+The following sections discuss several changes you may have to make to your configuration file, based on the input files you will be providing the program.
+
 ### Tab Characters in the Input File
 
 It is quite possible for the lines that contain the timing identifiers to contain tab characters ("\t"), especially if the user has decided to spread out the notes in the string lines. Due to the way that the program parses the input and assigns notes their length of time, the tab character causes problems. To solve this issue, the program will replace all tabs found in the timing lines with the number of spaces that correspond to a tab. By default, this is 8 spaces. However, in some text editors the number of spaces in a tab can be changed. Therefore, in the configuration file, a setting was added to specify how many spaces a tab should be replaced with. It is by default, set to 8:
@@ -121,6 +133,26 @@ hasextra=false
 This will provide a slight performance upgrade to the program, but can be ignored if you wish.
 
 **Note:** This should only be done if there is no extra text in the input tab file, otherwise an error will occur.
+
+### Creating a Legend
+
+It is not uncommon for tabs to provide specifications within the string lines of how to play notes using a legend. I have provided an example to explain why this relates to the tab-reading program.
+
+**Example:** Suppose I have a tab with the following legend.
+
+```
+h - hammer-on
+p - pull-off
+b - bend
+```
+
+For this program, you do not have to provide what each letter means, but it does need to know which characters will appear alongside the characters outlined in rule no. 1 in the section *Preparing an Input Tab File*. The way that you can specify this is through the configuration file. By default the "legend" option is blank. However, if I wanted to tell the program that I am passing in an input file with string lines that contain the characters in the above legend, I would change the "legend" line of the configuration file like so:
+
+```
+legend=hpb
+```
+
+*Observe:* I do not specify what h, p, and b mean, just that they will appear. Lastly, **note**, digits (0-9) and whitespace are not allowed to be in the legend.  
 
 ## Running the Program
 
@@ -144,13 +176,9 @@ After the first time you run the program, a log file will be generated and place
 
 **Note:** If a logging error occurs, that will be printed to the console.
 
-### Using the Configuration File
+It is important to realize however that the HTML file should also be checked carefully. The log file only reports if an error occurred in the program. If the user submitted incorrect input data, there are still circumstances where the program could execute correctly and still produce the wrong output. Consider the following.  
 
-The configuration file is designed to provide the user more freedom in how the program runs. It may be best to examine the default configuration file before writing one on your own and make sure it has the same name as the default configuration file. If you are using Windows, I would recommend using WordPad if you do not have another text editor such as Atom or Notepad++ to open the config file, as Notepad doesn't display the line breaks in the default config file.
-
-Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Comments can also be made after configuration lines by placing a "#". The program will ignore any text following the hashtag. Lastly, errors in the configuration file are also reported to the log file.
-
-**Important:** If you wish to write your own configuration file and provide different settings for the various options that can be configured in this program, make sure you put the new options and settings in the same order as in the default configuration file. Otherwise, an error will occur.
+**Example:** Suppose the user creates a tab file where every string line is formatted incorrectly. The program will read through and ignore each line, thinking that they are not supposed to be string lines. The program will then return an empty staff with no errors thrown. This is still not the correct output however.
 
 ### Note about Cygwin
 
