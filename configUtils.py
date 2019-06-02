@@ -29,6 +29,7 @@ class ConfigReader:
     TIMING_SUPPLIED_ID = "timingsupplied"
     GAPSIZE_ID = "gapsize"
     TAB_SPACING_ID = "tabspacing"
+    HAS_EXTRA_ID = "hasextra"
 
     """
     Constructs an empty ConfigReader. Use readConfigFile() to load the configuration file into this object.
@@ -148,6 +149,21 @@ class ConfigReader:
         return tabSpacing
 
     """
+    Returns whether or not the user has specified that the input text file has extra text. That is, notes or identifications of verses, etc. If the user removes all extra text that is all
+    non string and timing lines from the input file, the performance of loadLinesIntoLists() in tabReader.py increases.
+
+    Raises TabConfigurationException if getSetting() failed on the config file for the has extra option or if the setting found in the config file could not be recognized.
+    """
+    def getHasExtra(self):
+        setting = self.getSetting(3, ConfigReader.HAS_EXTRA_ID) # tab spacing option must be on line 3
+        if setting == ConfigReader.SETTING_YES:
+            return True
+        elif setting == ConfigReader.SETTING_NO:
+            return False
+        else: # only 2 allowed settings are True or False
+            raise TabConfigurationException(reason="setting {0} not recognized. Must be {1} or {2}".format(setting, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO), line=4)
+
+    """
     Builds the default config file. WARNING: calling this method will overwrite any pre-existing file with the same path as this program's config file.
 
     Raises TabConfigurationException if the file could not be created
@@ -156,8 +172,9 @@ class ConfigReader:
         DEFAULT_TIMING_SUPPLIED = ConfigReader.SETTING_NO
         DEFAULT_GAPSIZE = 3
         DEFAULT_TAB_SPACING = 8
+        DEFAULT_HAS_EXTRA = ConfigReader.SETTING_YES
 
-        defaultConfig = "# This is the configuration file for the tab reader program. \n# You can leave comments throughout this file by starting each comment line with a hashtag, like with Python.\n"+ConfigReader.TIMING_SUPPLIED_ID+"="+DEFAULT_TIMING_SUPPLIED+"\n"+ConfigReader.GAPSIZE_ID+"="+str(DEFAULT_GAPSIZE)+"\n"+ConfigReader.TAB_SPACING_ID+"="+str(DEFAULT_TAB_SPACING)
+        defaultConfig = "# This is the configuration file for the tab reader program. \n# You can leave comments throughout this file by starting each comment line with a hashtag, like with Python.\n"+ConfigReader.TIMING_SUPPLIED_ID+"="+DEFAULT_TIMING_SUPPLIED+"\n"+ConfigReader.GAPSIZE_ID+"="+str(DEFAULT_GAPSIZE)+"\n"+ConfigReader.TAB_SPACING_ID+"="+str(DEFAULT_TAB_SPACING)+"\n"+ConfigReader.HAS_EXTRA_ID+"="+str(DEFAULT_HAS_EXTRA)
 
         try: # try to write the default configuration to the config file, wrap any IOError that occurs as a TabConfigurationException
             with open(ConfigReader.CONFIG_FILENAME, "w+") as configFile:

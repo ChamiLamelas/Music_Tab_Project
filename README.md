@@ -18,9 +18,9 @@ Second, the program's output was tested in [Mozilla Firefox 67.0 (64-bit)](https
 
 ### Installing
 
-Each of the Python source files in the repository is necessary for the program to perform its intended purpose. To see what each one does, read the documentation at the top of each file. If you are interested, you can also read the documentation of each class and method in the source files.
+Each of the Python source files in the repository is necessary for the program to perform its intended purpose. To see what each one does, read the documentation at the top of each file. If you are interested, you can also read the documentation of each class and method in the source files.  
 
-You can download the configuration file if you wish, if you run the program it will automatically generate one if it doesn't locate one on your computer.
+You can download the configuration file if you wish, if you run the program it will automatically generate one if it doesn't locate one on your computer.  
 
 Make sure that *every* file you download is put in the *same* folder.
 
@@ -30,15 +30,15 @@ The input tab files follow the general format of tabs found on [Ultimate Guitar 
 
 **(1)** Lines that are meant to be strings must satisfy the following 5 properties.
 
-*(i)* Any whitespace must be at either the front or rear of the line, **none** in between measures or notes.
-*(ii)* The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"
-*(iii)* Following either case of *(ii)*, a sequence of *ONLY* the following characters:
+*(i)* Any whitespace must be at either the front or rear of the line, **none** in between measures or notes.  
+*(ii)* The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|".  
+*(iii)* Following either case of *(ii)*, a sequence of *ONLY* the following characters:  
 
 * vertical bar: "|"
 * hyphen: "-"
 * digits (0-9)
 
-*(iv)* The last non-whitespace character must be a "|"
+*(iv)* The last non-whitespace character must be a "|".  
 *(v)* Be at least 4 characters long, not counting the whitespace at either end.
 
 **(2)** Lines that are meant to list the timings of notes that are played must be made up of *ONLY* the following characters and must contain at least **1** non-whitespace character.
@@ -109,6 +109,18 @@ tabspacing=8
 ```
 
 Thus, before running the program, please check the number of spaces that are in a tab character for your text editor. For Windows users, Notepad follows the default and assigns each tab character to be equal to 8 spaces. Thus, you do not have to do anything in this case.
+
+### Handling "Extra" Text
+
+If the input file you have created includes extraneous text such as the song name at the top, a legend at the bottom, number of verses, etc., the program will still be able to parse the file for string lines and timing lines (assuming those were input correctly). However, there is a performance set-back and if you have found a tab file with no extra text or you wish to edit it so it has none, then change the configuration option "hasextra" in tabReader.config from "true" to "false", as so:
+
+```
+hasextra=false
+```
+
+This will provide a slight performance upgrade to the program, but can be ignored if you wish.
+
+**Note:** This should only be done if there is no extra text in the input tab file, otherwise an error will occur.
 
 ## Running the Program
 

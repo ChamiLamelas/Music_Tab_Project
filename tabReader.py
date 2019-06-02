@@ -18,24 +18,29 @@ from sys import argv
 import time
 
 """
-Returns whether a line that has been stripped on the end of whitespace and had all tabs replaced is a line representing the note timings.
+Returns whether a line with the following 3 properties is a timing line:
+
+(i) It contains at least 1 non-whitespace character
+(ii) It has been stripped on the end of whitespace
+(iii) It has had all its tabs replaced with spaces
 
 Lines that are meant to list the timings of notes that are played must be made up of ONLY the following characters and must contain at least 1 non-whitespace character.
 
 newline/carriage return: "\n" (at the end)
-tab: "\t" (cleaned by replaceTabs())
+tab: "\t" (cleaned by string.expandtabs() in loadLinesIntoLists())
 tie marking: "+"
 dot marking: "."
 space: " "
 *only* the uppercase letters that denote lengths of time: W, H, Q, E, and S
 """
 def checkNoteLine(line):
-    if len(line) == 0:
-        return False
     return len(line.translate({ord(c) : None for c in "+. WHQES"})) == 0
 
 """
-Returns whether a line that has been stripped on the end of whitespace is a line representing a string.
+Returns whether a line with the following 2 properties represents a string line:
+
+(i) It has at least 1 non-whitespace character
+(ii) It has been stripped on the end of whitespace
 
 Lines that are meant to be strings must:
 
@@ -73,7 +78,7 @@ tabSpacing - number of spaces in a tab character in the editor used for creating
 Raises TabFileException if the number of lines interpreted as either timing information and strings is incorrect. To see how lines are interpreted see the docs. for the 2 methods
 above.
 """
-def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing):
+def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing, hasExtra):
     count = 0 # count of lines that are either string lines or timing lines
     lastNoteExt = 0 # length of prev. timing line. This will be extended as explained in the method doc.
     for line in lines:
@@ -81,7 +86,10 @@ def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTimi
         # this allows the proper number of spaces to be added at the end of notes line as explained in the method doc. for this method. For string lines, this will solve the issue
         # of different string lines having different amounts of whitespace at the end and making sure they too have the same length as the timing lines with the new spaces.
         sLine = line.rstrip()
-        arr = list(sLine) # array rep. of file line stripped of carriage return
+        if len(sLine) == 0:
+            continue
+
+        arr = list(sLine) # array rep. of file line stripped of ending whitespace
         if hasTiming: # if user has specified that timing was supplied -> read lines in groups of 5, and note lines must be checked for
             if count % 5 == 0: # if any multiple of 5 lines has been read, the next line should be a note line if input file is valid.
                 # For a line that is to be interpreted as a timing line, all tabs must be removed from the line and replaced with the number of spaces a tab is equal to in the text editor made to create
@@ -89,13 +97,13 @@ def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTimi
                 # the extension of timing lines (with additional spaces) as they are placed into the notes array in this method is done properly.
                 sLine = sLine.expandtabs(tabSpacing)
                 arr = list(sLine)
-                if checkNoteLine(sLine): # check that its a valid note-timing line, if so add it to the notes array and mark how long it is for future extension and count it
+                if not hasExtra or checkNoteLine(sLine): # check that its a valid note-timing line, if so add it to the notes array and mark how long it is for future extension and count it
                     notes.extend(arr)
                     count += 1
                     lastNoteExt = len(arr)
                 # else, skip this line
             else: # other lines will be string lines
-                if checkStringLine(sLine): # check that its a valid string line, if so add it to the appropriate string array and count it
+                if not hasExtra or checkStringLine(sLine): # check that its a valid string line, if so add it to the appropriate string array and count it
                     if count % 5 == 1: # 1 line after a multiple of 5 is a g-string
                         gString.extend(arr)
                         # need to update the last addition to the notes list to add spaces to make the timing line of the input file have the same length as the g-string below it
@@ -112,7 +120,7 @@ def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTimi
                     count += 1
                 # else, skip the line
         else: # the user has specified that no timing was supplied -> read lines in groups of 4
-            if checkStringLine(sLine): # check that this is a valid string line, if so add it to the appropriate string array and count it
+            if not hasExtra or checkStringLine(sLine): # check that this is a valid string line, if so add it to the appropriate string array and count it
                 if count % 4 == 0: # if any multiple of 4 lines has been read, the next line should be a g-string
                     gString.extend(arr)
                 elif count % 4 == 1: # 1 line after a multiple of 4 is a d-string
@@ -126,9 +134,9 @@ def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTimi
     if (hasTiming and count % 5 != 0) or (not hasTiming and count % 4 != 0): # if timing was supplied, count should be a multiple of 5 and if not it should be a multiple of 4
         errorMsg = ""
         if hasTiming:
-            errorMsg = "The number of lines interpreted as strings and timing identifiers {0} is incorrect, should be a multiple of 5".format(count)
+            errorMsg = "The number of lines interpreted as strings and timing identifiers ({0}) is incorrect, should be a multiple of 5".format(count)
         else:
-            errorMsg = "The number of lines interpreted as strings {0} is incorrect, should be a multiple of 4".format(count)
+            errorMsg = "The number of lines interpreted as strings ({0}) is incorrect, should be a multiple of 4".format(count)
         raise TabFileException("input file line count incorrect", errorMsg)
     if len(gString) != len(dString) or len(gString) != len(aString) or len (gString) != len(eString) or (len(notes) > 0 and len(gString) != len(notes)): # loaded arrays must have the same length for further parsing
         errorMsg = ""
@@ -238,17 +246,18 @@ def run(logger):
             raise TabException("No input file can be found.")
 
         inFilename = argv[1]
-        logger.log("Successfully located input file {0}. Beginning tab-reading program...".format(inFilename))
+        logger.log("Successfully located input file {0}. Beginning tab-reading program configuration...".format(inFilename))
         start = time.time()
 
         rdr = ConfigReader()
         if rdr.readConfigFile(): # prepare config. file by loading it into a ConfigReader. If config file could not be loaded, reader reports it built & read the default config. file
-            logger.log("Configuration file was loaded successfully.")
+            logger.log("Configuration file was loaded successfully. Beginning tab-reading program...")
         else:
             logger.log(msg="Configuration file was not found. Default configuration file was created and loaded instead.", type=Logger.WARNING)
 
         hasTiming = rdr.getTiming()
         tabSpacing = rdr.getTabSpacing()
+        hasExtra = rdr.getHasExtra()
         Slice.loadMaps()
 
         notes = list()
@@ -264,7 +273,7 @@ def run(logger):
         except IOError as i:
             raise TabIOException("opening tab file", str(i))
 
-        loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing)
+        loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing, hasExtra)
         logger.log("Data in input tab file {0} was loaded successfully into array representation. ".format(inFilename))
         song = Song(rdr.getGapsize())
         buildSong(song, notes, gString, dString, aString, eString)
@@ -278,7 +287,7 @@ def run(logger):
             logger.log("Output HTML file {0} was opened and data in Song created from input tab file {1} was written successfully before closing.".format(outFilename, inFilename))
         except IOError as i:
             raise TabIOException("creating HTML file", str(i))
-        logger.log("Program completed successfully in {0} seconds.".format(round(time.time()-start, 4)))
+        logger.log("Program completed successfully in {0} seconds.".format(round(time.time()-start, 6)))
 
     except TabFileException as t:
         logger.log(msg=str(t), type=Logger.ERROR)
