@@ -22,7 +22,7 @@ TIMING_SUPPLIED_ID - id of the option that signifes timing is supplied (that is 
 GAPSIZE_ID - id of the option that signfies the output's sheet music gapsize
 TAB_SPACING_ID - id of the option that signifies the number of spaces in a tab
 HAS_EXTRA_ID - id of the option that signifies whether extra text exists in the file
-LEGEND_ID - id of the option that holds a legend of other characters that may appear in string lines (e.g. h for hammer-ons, p for pull-offs, b for bends, etc.)
+PLAYING_LEGEND_ID - id of the option that holds a legend of other characters that may appear in string lines (e.g. h for hammer-ons, p for pull-offs, b for bends, etc.)
 """
 class ConfigReader:
 
@@ -34,7 +34,7 @@ class ConfigReader:
     GAPSIZE_ID = "gapsize"
     TAB_SPACING_ID = "tabspacing"
     HAS_EXTRA_ID = "hasextra"
-    LEGEND_ID = "legend"
+    PLAYING_LEGEND_ID = "playinglegend"
 
     """
     Constructs an empty ConfigReader. Use readConfigFile() to load the configuration file into this object.
@@ -173,9 +173,8 @@ class ConfigReader:
 
     Raises TabConfigurationException if getSetting() failed on the config file for the legend option or if the legend contains a whitespace character or digit (0-9).
     """
-
-    def getLegend(self):
-        setting = self.getSetting(4, ConfigReader.LEGEND_ID) # legend option must be on line 4
+    def getPlayingLegend(self):
+        setting = self.getSetting(4, ConfigReader.PLAYING_LEGEND_ID) # legend option must be on line 4
         leg = set()
         for ch in setting:
             if ch.isdigit() or ch.isspace():
@@ -195,9 +194,9 @@ class ConfigReader:
         DEFAULT_GAPSIZE = 3
         DEFAULT_TAB_SPACING = 8
         DEFAULT_HAS_EXTRA = ConfigReader.SETTING_YES
-        DEFAULT_LEGEND = ""
+        DEFAULT_PLAYING_LEGEND = ""
 
-        defaultConfig = "# This is the configuration file for the tab reader program. \n# You can add line comments in the configuration file similarly to how it is done in Python: \n# (1) Placing a hashtag \"#\" at the beginning of each comment line. \n# (2) Placing a \"#\" at the end of configuration lines. The program will ignore any text following the hashtag.\n"+ConfigReader.TIMING_SUPPLIED_ID+"="+DEFAULT_TIMING_SUPPLIED+"\n"+ConfigReader.GAPSIZE_ID+"="+str(DEFAULT_GAPSIZE)+"\n"+ConfigReader.TAB_SPACING_ID+"="+str(DEFAULT_TAB_SPACING)+"\n"+ConfigReader.HAS_EXTRA_ID+"="+str(DEFAULT_HAS_EXTRA)+"\n"+ConfigReader.LEGEND_ID+"="+str(DEFAULT_LEGEND)
+        defaultConfig = "# This is the configuration file for the tab reader program. \n# You can add line comments in the configuration file similarly to how it is done in Python: \n# (1) Placing a hashtag \"#\" at the beginning of each comment line. \n# (2) Placing a \"#\" at the end of configuration lines. The program will ignore any text following the hashtag.\n"+ConfigReader.TIMING_SUPPLIED_ID+"="+DEFAULT_TIMING_SUPPLIED+"\n"+ConfigReader.GAPSIZE_ID+"="+str(DEFAULT_GAPSIZE)+"\n"+ConfigReader.TAB_SPACING_ID+"="+str(DEFAULT_TAB_SPACING)+"\n"+ConfigReader.HAS_EXTRA_ID+"="+str(DEFAULT_HAS_EXTRA)+"\n"+ConfigReader.PLAYING_LEGEND_ID+"="+str(DEFAULT_PLAYING_LEGEND)
 
         try: # try to write the default configuration to the config file, wrap any IOError that occurs as a TabConfigurationException
             with open(ConfigReader.CONFIG_FILENAME, "w+") as configFile:

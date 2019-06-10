@@ -8,15 +8,16 @@ The primary purpose of this project was to provide a program that takes an ASCII
 
 This section will inform you of the necessary prerequisites to run this program, the necessary files, and how to prepare program input files. It may be helpful for you to read about what data can be put into an ASCII text file. Here are some useful links:
 
-* [Wikipedia Article on a Text File](https://en.wikipedia.org/wiki/Text_file)
+* [Wikipedia Article on Text Files](https://en.wikipedia.org/wiki/Text_file)
 * [Wikipedia Article on ASCII](https://en.wikipedia.org/wiki/ASCII)
 * [An ASCII Table](http://www.asciitable.com/)
+* For a discussion of text editors, and which one you may have on your computer refer to the subsection "Types of text editors" in the Wikipedia article on text files.
 
 **Note:** the installation and running of this program has been tested *only* on Windows 10 using Python 3.7.2 and Python 3.7.3. Other versions of Python 3 have not been tested, but should be compatible. However, Python 2 is **NOT** compatible.
 
 ### Prerequisites
 
-First, download a version of Python **3**. To do so, you can go to the [Python download page](https://www.python.org/downloads/). In the installation wizard, *make sure that Python is added to the system path* so that you can run the Python commands discussed in the section [Running the Program](##Running the Program).
+First, download a version of Python **3**. To do so, you can go to the [Python download page](https://www.python.org/downloads/). In the installation wizard, *make sure that Python is added to the system path* so that you can run the Python commands discussed in the section [Running the Program](##running-the-program).
 
 Second, the program's output was tested in Mozilla Firefox 67.0 (64-bit) and Google Chrome Version 74.0.3729.169 (Official Build) (64-bit) on Windows Version 10.0.17763.503. So, it may be best to download one of those browsers. You can download the latest versions of these browsers below:
 
@@ -44,6 +45,7 @@ The input tab files follow the general format of tabs found on [Ultimate Guitar 
 * vertical bar: "|"
 * hyphen: "-"
 * digits (0-9)
+* any characters in the playing legend, see [Creating a Playing Legend](###creating-a-playing-legend)
 
 *(iv)* The last non-whitespace character must be a "|".  
 *(v)* Be at least 4 characters long, not counting the whitespace at either end.
@@ -63,7 +65,7 @@ These lines should *only* be present if the timing is supplied in the tab, which
 timingsupplied=true
 ```
 
-More on the configuration file is discussed below in the subsection [Using the Configuration File](##Using the Configuration File).
+More on the configuration file is discussed below in the subsection [Using the Configuration File](##using-the-configuration-file).
 
 **(3)** The timing letter ID that signifies the length of a note is assumed to be located above the first digit of the fret that the note corresponds to. For example, if note on the E-string 10th fret (D) is meant to be a quarter note, the portion of the input tab that corresponds to this should appear as so:
 
@@ -145,9 +147,9 @@ This will provide a slight performance upgrade to the program, but can be ignore
 * Lines that are made up entirely of whitespace do not count as "extra" text.
 * There cannot be extra text at the end of lines that are meant to be interpreted as string or timing lines.
 
-### Creating a Legend
+### Creating a Playing Legend
 
-It is not uncommon for tabs to provide specifications within the string lines of how to play notes using a legend. I have provided an example to explain why this relates to the tab-reading program.
+It is common for tabs to provide specifications within the string lines of how to play notes (to bend, hammer-on, pull-off, etc.) using a legend. In the tab-reading program, string lines need to have a specific definition in order to be identified by the program as explained in the section above [Preparing an Input Tab File](###preparing-an-input-tab-file). The legend configuration option as explained in the example below can be used to allow other characters to occur in string lines besides the ones listed explicitly in rule no. 1 in *Preparing an Input Tab File*.
 
 **Example:** Suppose I have a tab with the following legend.
 
@@ -157,7 +159,7 @@ p - pull-off
 b - bend
 ```
 
-For this program, you do not have to provide what each letter means, but it does need to know which characters will appear alongside the characters outlined in rule no. 1 in the section *Preparing an Input Tab File*. The way that you can specify this is through the configuration file. By default the "legend" option is blank. However, if I wanted to tell the program that I am passing in an input file with string lines that contain the characters in the above legend, I would change the "legend" line of the configuration file like so:
+For this program, you do not have to provide what each letter means, but it does need to know which characters will appear in string lines as mentioned above. The way that you can specify this is through the configuration file. By default the "legend" option is blank. However, if I wanted to tell the program that I am passing in an input file with string lines that contain the characters in the above legend, I would change the "legend" line of the configuration file like so:
 
 ```
 legend=hpb

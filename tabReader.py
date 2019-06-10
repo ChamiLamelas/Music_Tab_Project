@@ -53,19 +53,20 @@ Lines that are meant to be strings must:
 vertical bar: "|"
 hyphen: "-"
 digits (0-9)
+any characters in the playing legend
 
 (c) The last non-whitespace character must be a "|"
 (d) Be at least 4 characters long, not counting the whitespace at either end.
 
 params:
 line - a line who satisfies (i) and (ii) that will be checked if it satisfies (a)-(d)
-legend - set of characters that are allowed in strings
+playingLegend - set of characters that are allowed in strings
 """
-def checkStringLine(line, legend):
+def checkStringLine(line, playingLegend):
     line = line.lstrip() # strip any whitespace before checking props. (a)-(d)
     if len(line) < 4:
         return False
-    checkSet = set("|-0123456789").union(legend)
+    checkSet = set("|-0123456789").union(playingLegend)
     return ((line[0] in "GDAE" and line[1] == "|") or line.startswith("|")) and len(line[1:].translate({ord(c) : None for c in checkSet})) == 0 and line.endswith("|")
 
 """
@@ -176,7 +177,7 @@ lines - list of lines read from input file
 song - Song object that will be loaded with Measures and Slices
 hasTiming - config option that specifies whether user has provided timing info.
 tabSpacing - number of spaces in a tab in user's text editor (see README)
-legend - list of other chars. that will appear in string lines (see README)
+playingLegend - list of other chars. that will appear in string lines (see README)
 loadedLines - array used to report info. on progress of parsing 'lines' to main method 'run()' since Python lists are passed by ref.
     loadedLines[0] - number of lines read
     loadedLines[1] - number of lines interpreted as string/timing lines
@@ -191,7 +192,7 @@ Furthermore, in the event of helper method updateSong() failing, the following e
     - TabConfigurationException
 The reasons as to why these exceptions could be raised seemed to lengthy to add here. Instead, look at that method's doc.
 """
-def buildSong(lines, song, hasTiming, tabSpacing, legend, loadedLines):
+def buildSong(lines, song, hasTiming, tabSpacing, playingLegend, loadedLines):
     notes = list() # list that holds timing info
     gString = list() # list that holds data from g-string (fret numbers, measure lines, dashes, and anything in 'legend')
     dString = list() # list that holds data from d-string ("                                                           ")
@@ -227,7 +228,7 @@ def buildSong(lines, song, hasTiming, tabSpacing, legend, loadedLines):
                     song.placeExtraLine(sLine)
             else:
                 arr = list(sLine)
-                if not song.hasExtraText or checkStringLine(sLine, legend): # if 'song' doesn't have any extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
+                if not song.hasExtraText or checkStringLine(sLine, playingLegend): # if 'song' doesn't have any extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
                     if loadedLines[1] % 5 == 1:
                         gString.extend(arr)
                          # need to update the last addition to the notes list to add spaces to make the timing line of the input file have the same length as the g-string list below it
@@ -250,7 +251,7 @@ def buildSong(lines, song, hasTiming, tabSpacing, legend, loadedLines):
                     song.placeExtraLine(sLine)
         else: # the user has specified that no timing was supplied -> read lines in groups of 4
             arr = list(sLine)
-            if not song.hasExtraText or checkStringLine(sLine, legend): # if 'song' doesn't have extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
+            if not song.hasExtraText or checkStringLine(sLine, playingLegend): # if 'song' doesn't have extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
                 if loadedLines[1] % 4 == 0:
                     nextUpdate = len(gString) # set 'nextUpdate' to be the first index of the new data added to the g-string list. It is assumed by previous calls to 'updateSong()' that the data from all 4 lists have been read up to this index. Otherwise the error below would have been raised
                     gString.extend(arr)
@@ -301,7 +302,7 @@ def run(logger):
 
         hasTiming = rdr.getTiming()
         tabSpacing = rdr.getTabSpacing()
-        legend = rdr.getLegend()
+        playingLegend = rdr.getPlayingLegend()
         Slice.loadMaps()
 
         song = Song(rdr.getGapsize(), rdr.getHasExtra())
@@ -317,7 +318,7 @@ def run(logger):
             raise TabIOException("opening tab file", str(i))
 
         start = time.time()
-        buildSong(lines, song, hasTiming, tabSpacing, legend, loadedLines)
+        buildSong(lines, song, hasTiming, tabSpacing, playingLegend, loadedLines)
 
         # log a more detailed report of the result of Song building based on the data in 'loadedLines'
         logger.log("Song building of the data from \"{0}\" finished without any parsing errors. {1} out of the {2} loaded lines were read successfully.".format(inFilename, loadedLines[0], len(lines)))
