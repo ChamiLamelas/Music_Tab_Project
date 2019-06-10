@@ -1,6 +1,6 @@
 # Music Tab Project
 
-The primary purpose of this project was to provide a program that takes an ASCII text file holding a bass guitar tab and converting it into sheet music. The sheet music is stored in an HTML file and can be displayed in a browser.
+The primary purpose of this project was to provide a program that takes an ASCII text file holding a bass guitar tab and converting it into sheet music. The sheet music is stored in an HTML file and can be displayed in a browser. Below, you will find an instructions manual on how to set-up and use this project.
 
 **Date:** Summer 2019
 
@@ -16,7 +16,7 @@ This section will inform you of the necessary prerequisites to run this program,
 
 ### Prerequisites
 
-First, download a version of Python **3**. To do so, you can go to the [Python download page](https://www.python.org/downloads/). In the installation wizard, *make sure that Python is added to the system path* so that you can run the Python commands discussed in the section [Running the Program](## Running the Program).
+First, download a version of Python **3**. To do so, you can go to the [Python download page](https://www.python.org/downloads/). In the installation wizard, *make sure that Python is added to the system path* so that you can run the Python commands discussed in the section [Running the Program](##Running the Program).
 
 Second, the program's output was tested in Mozilla Firefox 67.0 (64-bit) and Google Chrome Version 74.0.3729.169 (Official Build) (64-bit) on Windows Version 10.0.17763.503. So, it may be best to download one of those browsers. You can download the latest versions of these browsers below:
 
@@ -63,7 +63,7 @@ These lines should *only* be present if the timing is supplied in the tab, which
 timingsupplied=true
 ```
 
-More on the configuration file is discussed below in the subsection [Using the Configuration File](## Using the Configuration File).
+More on the configuration file is discussed below in the subsection [Using the Configuration File](##Using the Configuration File).
 
 **(3)** The timing letter ID that signifies the length of a note is assumed to be located above the first digit of the fret that the note corresponds to. For example, if note on the E-string 10th fret (D) is meant to be a quarter note, the portion of the input tab that corresponds to this should appear as so:
 
@@ -139,7 +139,11 @@ hasextra=false
 
 This will provide a slight performance upgrade to the program, but can be ignored if you wish.
 
-**Note:** This should only be done if there is no extra text in the input tab file, otherwise an error will occur.
+**Notes:**
+
+* This should only be done if there is no extra text in the input tab file, otherwise errors could occur in file reading.
+* Lines that are made up entirely of whitespace do not count as "extra" text.
+* There cannot be extra text at the end of lines that are meant to be interpreted as string or timing lines.
 
 ### Creating a Legend
 
@@ -177,13 +181,34 @@ After you run the program, an output HTML file encoded in *UTF-8* will be genera
 
 **Note:** If you run the same command again, the contents of this file will be overwritten, so if you wish to save the first output, I would rename the file or move it to another directory.
 
-### The Log File
+### Understanding The Log File
 
-After the first time you run the program, a log file will be generated and placed in the same folder. All program output will be placed into this file unless the logging itself fails. This includes any errors that are reported, so this file should be checked in addition to the output file to make sure your program ran successfully. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from.
+After the first time you run the program, a log file will be generated and placed in the same folder. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from. All program output will be placed into this file unless the logging itself fails. It is important to note that the log file will not only display error messages of problems that arose in program execution. This will be explained using the following example:
+
+Suppose the program executes on a test file successfully and the log file reports the following. The program doesn't provide line numbers, but I have added them for convenience.
+
+```
+1) [2019-06-10 15:39:56.224618][> Log >] New Log Session started.
+2) [2019-06-10 15:39:56.224618][Info] Successfully located input file "C:\Users\Chami\Desktop\test.txt" in program args. Beginning tab-reading program configuration...
+3) [2019-06-10 15:39:56.224618][Info] Configuration file was found.
+4) [2019-06-10 15:39:56.224618][Info] Configuration file was loaded and its contents were read successfully. Beginning tab-reading...
+5) [2019-06-10 15:39:56.224618][Info] Input tab file "C:\Users\Chami\Desktop\test.txt" was opened and closed successfully.
+6) [2019-06-10 15:39:56.225615][Info] Song building of the data from "C:\Users\Chami\Desktop\test.txt" finished without any parsing errors. 25 (ii) out of the 25 (i) loaded lines were parsed successfully.
+7) [2019-06-10 15:39:56.225615][Info] 10 (iii) out of the 25 (ii) read lines were interpreted as string lines and timing lines. 6 (iv) Measure objects were created.
+8) [2019-06-10 15:39:56.232632][Info] Output HTML file "C:\Users\Chami\Desktop\test_staff.html" was opened and Song data was written successfully before closing.
+9) [2019-06-10 15:39:56.232632][Info] Tab-reading and sheet music generation was completed successfully in 0.008014 seconds.
+```
+
+Observe that lines 2-9 provide a timeline of the execution of the program. If error messages were to occur after some of these lines, it provides you with an easier way to diagnose the problem. That is, you will know which parts of the program executed successfully. However, lines 6 and 7 provide a little more than that. The program stores the input data by parsing the input tab file and then organizing into a set of new structures or objects (details on their implementation can be found in typeLibrary.py). If an explicit error is encountered in this process, then an error message would appear after line 5 above. If no error occurs, then you will see 2 lines similar to line 6 and 7 above. These lines tell you a few things. The last 2 are the most likely to be helpful as they address issues that are more likely to occur.
+
+* How many lines were loaded from the input tab file. This is equal to 25 in this example, but is denoted as (ii) for clarity. This is useful for telling you whether the entire file was even read properly.
+* How many lines were parsed from the set of loaded lines. This is equal to 25 in this example (as it should be if the program was successful) and is denoted as (i). This is useful for telling you whether the program missed some lines.
+* How many lines were interpreted as string or timing lines. This is equal to 10 in this example and is denoted as (iii). This is useful for telling you whether all the lines you intended to be strings or timing lines were interpreted by the program as so.
+* How many "things" in the input tab file were interpreted as measures. This is equal to 6 in this example and is denoted as (iv). The program stores anything between two horizontal bars "|" in a "Measure object", whether timing has been supplied or not. Therefore, this - similar to the 3rd bullet - gives you an idea of how much of the input tab file was read based on the bars you put in the input file.
 
 **Note:** If a logging error occurs, that will be printed to the console.
 
-It is important to realize however that the HTML file should also be checked carefully. The log file only reports if an error occurred in the program. If the user submitted incorrect input data, there are still circumstances where the program could execute correctly and still produce the wrong output. Consider the following.  
+It is important to realize however that the HTML file should also be checked carefully. The log file only reports *some* details of the program's execution and errors occurring in the program. If the user submitted incorrect input data, there are still circumstances where the program could execute correctly and still produce the wrong output. Consider the following.  
 
 **Example:** Suppose the user creates a tab file where every string line is formatted incorrectly. The program will read through and ignore each line, thinking that they are not supposed to be string lines. The program will then return an empty staff with no errors thrown. This is still not the correct output however.
 
@@ -197,12 +222,13 @@ The reason that the staff output is displayed in an HTML file as opposed to an A
 
 ## Future Development
 
-If interested, here are possible major additions to later versions of the project:
+If interested, here are possible upgrades that would be in later versions of the project.
 
 * Using keys alongside the input file to output better sheet music that doesn't have to attach "#" to every sharped note.
 * Support for non-standard tuning (G, D, A, E).
 * A version for instruments other than a 4-string bass.
 * Support for other timing identifiers than W, H, Q, E, and S for whole note, half note, quarter note, eighth note, and sixteenth note respectively.
+* Support for extra text being placed at the end of string or timing lines.
 
 ## Built With
 

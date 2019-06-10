@@ -160,7 +160,7 @@ class Slice:
         if not Slice.lengths:
             raise TabConfigurationException("Time lengths not loaded properly. Please review program set-up.")
         self.notes = list()
-        self.length = -1
+        self.length = 0 # if the length is specified it must be greater than 0
         self.numDots = 0
         self.nextDotLength = -1
         self.symbol = Slice.NO_SYMBOL
@@ -216,6 +216,8 @@ class Slice:
 
     params:
     symbol - a given length symbol
+
+    pre-condition: the time length associated with 'symbol' in 'Slice.lengths' must be in (0, 1].
 
     Raises a TabException if checkLengthSymbol(symbol) fails (see above doc.)
     """
@@ -389,9 +391,9 @@ class Measure:
     Raises a MeasureException if this Measure's length > 1.
     """
     def validate(self):
-        if self.length > 1:
-            raise MeasureException("creating a Measure.", str(self.length) + " is not a valid Measure length.")
-        # in the case of self.length < 1, for now will leave an empty space (don't know if this is formal though)
+        if self.length > 1 or self.length < 0:
+            raise MeasureException("creating a Measure.", "{0} is not a valid Measure length.".format(self.length))
+        # In the case where a Measure is made up of Slices with no timing info., the length of the Measure is 0.
 
     """
     Returns a StaffString representation of this Measure given a gapsize which is used to determine how many "-" separate Slices in the Measure.
@@ -424,21 +426,22 @@ class Measure:
 This class represents a Song, that is an ordered list of Measures. Song objects have the following attributes:
 
 measures - a list of Measures
-gapsize - the gapsize that separates the Slices that make up the Measures of this Song
+gapsize - The Song's gap size is the number of "-" or " " between 2 notes. The extra text option specifies whether an input tab file whose data is to be loaded into this Song object contains extraneous text that are not string lines, timing lines, or whitespace.
+hasExtraText - The extra text option specifies whether an input tab file whose data is to be loaded into this Song object contains extraneous text that are not string lines, timing lines, or whitespace.
+extraText - a list of character strings that hold extraneous text AND whitespace if hasExtraText is True or JUST whitespace if hasExtraText is False. For a given index 'i', 'extraText[i]; holds the extra text that occurs after 'i' Measures of the Song.
 """
 class Song:
 
     """
-    Constructs an empty Song object.
+    Constructs an empty Song object given a gap size and extra text setting (see class doc.).
 
     params:
-    gapsize - a user-specified gapsize.
+    gapsize - a user-specified gapsize
+    hasExtraText - a user-specified extra text setting.
 
     Raises a TabConfigurationException if gapsize < 0
     """
     def __init__(self, gapsize, hasExtraText):
-        if gapsize < 0:
-            raise TabConfigurationException("Unacceptable gapsize ({0}). The gapsize must be a nonnegative integer.".format(gapsize))
         self.measures = list()
         self.gapsize = gapsize
         self.extraText = list()
@@ -466,7 +469,7 @@ class Song:
     Places an extra line into the Song's extra text storage.
 
     params:
-    line - a line of extra text
+    line - a line of extra text or whitespace
     """
     def placeExtraLine(self, line):
         if self.numMeasures() >= len(self.extraText):
@@ -477,41 +480,33 @@ class Song:
             self.extraText[self.numMeasures()] += "\n" + line
 
     """
-    DEPRECATED.
-
-    Prints the Song to the console. Use only for debugging.
-    """
-    def print(self):
-        out = "||"
-        out += "|".join(map(str, self.measures))
-        print(out + "||")
-
-    """
     Returns a sheet music String representation of this Song using StaffString utility class and its String represenation.
 
     Raises a TabFileException if the extra text in the file was not loaded properly.
     """
     def __str__(self):
         if len(self.extraText) > self.numMeasures() + 1:
-                raise TabFileException("extra text loading failure", "The length of the extra text list ({0}) is not allowed. It must be less than or equal to {1}".format(len(self.extraText), self.numMeasures() + 1))
-        out = list()
-        s = StaffString("", restrict=False)
-        if len(self.extraText) > 0 and self.extraText[0] != "":
+            raise TabFileException("extra text loading failure", "The length of the extra text list ({0}) is not allowed. It must be less than or equal to {1}".format(len(self.extraText), self.numMeasures() + 1))
+        out = list() # list which will be joined to form output character string
+        s = StaffString("", restrict=False) # temp. var. that will build up groups of Measures that is added to out before being reset. Resets are split up by additions from 'self.extraText' to the output list
+        if len(self.extraText) > 0 and self.extraText[0] != "": # if there's extra text before 0 measures (i.e. at the beginning of the file), place that into the output first
             out.append(self.extraText[0])
-        for i in range(0, self.numMeasures()):
-            if i == 0:
+        for i in range(0, self.numMeasures()): # for each Measure in the Song, add it to 's' and place them and any extra text that may follow to the output list before resetting 's'
+            if i == 0: # if this is the first Measure in the Song, put double bar lines at the beginning of the sheet music
                 s.union(StaffString("|"))
                 s.union(StaffString("|"))
+            # for any Measure in the Song, add its StaffString to 's' followed by a bar line
             s.union(self.measures[i].getStaffStr(self.gapsize))
             s.union(StaffString("|"))
-            if i == self.numMeasures() - 1:
+            if i == self.numMeasures() - 1: # if this is the last Measure in the Song, add an extra (ending) bar line.
                 s.union(StaffString("|"))
+             # if there is extra text to be added after 'i' Measures, then 'self.extraText[i + 1]' != "". This is because 'self.measures' uses 0-based indexing where at ith iteration in the for-loop, i+1 Measures have been visited
+             # if the above condition is true: add 's' to the output first, followed by the extra text, and then reset 's' for the next set of Measures to be added before the next time there is extra text to be added
+             # note: this accounts for any extra text that follows all the Measures in the Song because the loop ends when 'i' = 'self.numMeasures()' - 1 and thus 'i' + 1 = 'self.numMeasures()' and thus, in 'self.extraText' denotes the extra text that follows all the Measures in this Song.
             if i + 1 < len(self.extraText) and self.extraText[i + 1] != "":
                 out.append(str(s))
                 out.append(self.extraText[i + 1])
                 s = StaffString("|")
-        if s.width > 1:
+        if s.width > 1: # if there were any Measures that were not added in the above loop (because they weren't followed by extra text) add them
             out.append(str(s))
-        if len(self.extraText) == self.numMeasures() + 1:
-            out.append(self.extraText[self.numMeasures()])
         return "\n".join(out)
