@@ -16,7 +16,6 @@ from configUtils import ConfigReader
 from logging import Logger
 from sys import argv
 import time
-import traceback
 
 """
 Returns whether a line with the following 3 properties is a timing line:
@@ -63,98 +62,11 @@ line - a line who satisfies (i) and (ii) that will be checked if it satisfies (a
 legend - set of characters that are allowed in strings
 """
 def checkStringLine(line, legend):
-    line = line.lstrip() # strip any whitespace at the start before checking properties (a) - (d)
+    line = line.lstrip() # strip any whitespace before checking props. (a)-(d)
     if len(line) < 4:
         return False
     checkSet = set("|-0123456789").union(legend)
     return ((line[0] in "GDAE" and line[1] == "|") or line.startswith("|")) and len(line[1:].translate({ord(c) : None for c in checkSet})) == 0 and line.endswith("|")
-
-"""
-Takes a String list of the lines of the input file and loads the input into 4 (or 5) arrays. This will be the first representation of the notes in the song, where each string of
-the bass is an array. Furthermore, if the timing is supplied, the 5th array holds the timings of the of each note represented as letters (W, H, Q, etc.). In the end, each array
-should have the same length if the input tab file is indeed valid. As a result, spaces are placed into the notes list to stretch it to correspond to the g-string.
-
-params:
-lines - list of Strings from the input file
-notes - holds the timings' ids
-gString - array representing g-string
-dString - array representing d-string
-aString - array representing a-string
-eString - array representing e-string
-hasTiming - truth value of timing being supplied (taken from config file)
-tabSpacing - number of spaces in a tab character in the editor used for creating the input file
-legend - set of characters that are allowed in strings
-
-Raises TabFileException if the number of lines interpreted as either timing information and strings is incorrect. To see how lines are interpreted see the docs. for the 2 methods
-above.
-"""
-def loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing, hasExtra, legend):
-    count = 0 # count of lines that are either string lines or timing lines
-    lastNoteExt = 0 # length of prev. timing line. This will be extended as explained in the method doc.
-    for line in lines:
-        #  All whitespace should be stripped from the end of any line. In the case of empty lines, this will convey the same message as stripping both ends of the line of whitespace. For timing lines,
-        # this allows the proper number of spaces to be added at the end of notes line as explained in the method doc. for this method. For string lines, this will solve the issue
-        # of different string lines having different amounts of whitespace at the end and making sure they too have the same length as the timing lines with the new spaces.
-        sLine = line.rstrip()
-        if len(sLine) == 0:
-            continue
-
-        arr = list(sLine) # array rep. of file line stripped of ending whitespace
-        if hasTiming: # if user has specified that timing was supplied -> read lines in groups of 5, and note lines must be checked for
-            if count % 5 == 0: # if any multiple of 5 lines has been read, the next line should be a note line if input file is valid.
-                # For a line that is to be interpreted as a timing line, all tabs must be removed from the line and replaced with the number of spaces a tab is equal to in the text editor made to create
-                # the input tab file. It is quite possible that timing lines will have tabs, especially if the user has spaced out the notes. This ensures that
-                # the extension of timing lines (with additional spaces) as they are placed into the notes array in this method is done properly.
-                sLine = sLine.expandtabs(tabSpacing)
-                arr = list(sLine)
-                if not hasExtra or checkNoteLine(sLine): # check that its a valid note-timing line, if so add it to the notes array and mark how long it is for future extension and count it
-                    notes.extend(arr)
-                    count += 1
-                    lastNoteExt = len(arr)
-                # else, skip this line
-            else: # other lines will be string lines
-                if not hasExtra or checkStringLine(sLine, legend): # check that its a valid string line, if so add it to the appropriate string array and count it
-                    if count % 5 == 1: # 1 line after a multiple of 5 is a g-string
-                        gString.extend(arr)
-                        # need to update the last addition to the notes list to add spaces to make the timing line of the input file have the same length as the g-string below it
-                        # otherwise, for input files where tabs may be on separate lines, the notes' timings would not be above the 1st digit of the fret of the note corresponding
-                        # to it. This is what is needed in buildSong in order to properly parse the input data and load it into a Song object.
-                        for i in range(lastNoteExt, len(arr)):
-                            notes.append(" ")
-                    elif count % 5 == 2: # 2 lines after a multiple of 5 is a d-string
-                        dString.extend(arr)
-                    elif count % 5 == 3: # 3 lines after a multiple of 5 is an a-string
-                        aString.extend(arr)
-                    elif count % 5 == 4: # 4 lines after a multiple of 5 is an e-string
-                        eString.extend(arr)
-                    count += 1
-                # else, skip the line
-        else: # the user has specified that no timing was supplied -> read lines in groups of 4
-            if not hasExtra or checkStringLine(sLine, legend): # check that this is a valid string line, if so add it to the appropriate string array and count it
-                if count % 4 == 0: # if any multiple of 4 lines has been read, the next line should be a g-string
-                    gString.extend(arr)
-                elif count % 4 == 1: # 1 line after a multiple of 4 is a d-string
-                    dString.extend(arr)
-                elif count % 4 == 2: # 2 lines after a multiple of 4 is an a-string
-                    aString.extend(arr)
-                elif count % 4 == 3: # 3 lines after a multiple of 4 is an e-string
-                    eString.extend(arr)
-                count += 1
-            # else, skip the line
-    if (hasTiming and count % 5 != 0) or (not hasTiming and count % 4 != 0): # if timing was supplied, count should be a multiple of 5 and if not it should be a multiple of 4
-        errorMsg = ""
-        if hasTiming:
-            errorMsg = "The number of lines interpreted as strings and timing identifiers ({0}) is incorrect, should be a multiple of 5".format(count)
-        else:
-            errorMsg = "The number of lines interpreted as strings ({0}) is incorrect, should be a multiple of 4".format(count)
-        raise TabFileException("input file line count incorrect", errorMsg)
-    if len(gString) != len(dString) or len(gString) != len(aString) or len (gString) != len(eString) or (len(notes) > 0 and len(gString) != len(notes)): # loaded arrays must have the same length for further parsing
-        errorMsg = ""
-        if len(notes) > 0:
-            errorMsg = "The arrays holding strings (lengths = {0}, {1}, {2}, {3}) and the array holding the timing ({4}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString), len(notes))
-        else:
-            errorMsg = "The arrays holding strings (lengths = {0}, {1}, {2}, {3}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString))
-        raise TabFileException("arrays not loaded properly", errorMsg)
 
 """
 Parses a given note. Here a note is not in the string-fret representation referenced in the type library classes, but at an index (or 2) in a string array. This
@@ -182,32 +94,37 @@ def parseNote(string, idx, slice, stringID):
     return skip
 
 """
-This method parses the read data from the tab file (stored in a set of arrays) and loads it into a provided Song object by parsing the parameter data and appropriately
-creating Slices and Measures to place into the Song.
+Updates a Song object given a subset of the input data stored as a group of lists.
 
 params:
-song - a Song to be built
-notes - an array that holds the symbols denoting the length of time of each Slice in the tab (could be empty if no timing is provided)
-gString - array holding notes to be played on the 4th (or g) string of the bass
-dString - array holding notes to be played on the 3rd (or d) string of the bass
-aString - array holding notes to be played on the 2nd (or a) string of the bass
-eString - array holding notes to be played on the 1st (or e) string of the bass
+song - a Song object to be updated
+start - starting index of new data to be loaded into 'song' (*)
+end - ending index of new data to be loaded into 'song' (*)
+notes - list of timing info.
+gString - representation of G-string
+dString - representation of D-string
+aString - representation of A-string
+eString - representation of E-string
+lastSlice - last Slice to be added to 'song'
 
-pre-condition: all arrays are of the same length unless notes is empty.
+pre-conditions:
+if notes is not empty, it should have the same length as the string lists (gString, dString, aString, and eString)
+(*) start and end must be valid indices in the above lists
 
-Raises MeasureException if song.addMeasure() fails
-Raises TabFileException if parseNote() fails or if an improper measure line is detected.
-Raises TabException if Slice.setLength() or Slice.applyDot() fails
-To see better explanations, view these methods' doc.
+Returns the last Slice to be added to 'song', replaces param. 'lastSlice'
+
+Raises TabConfigurationException if the Slice class' mapping from timing symbols to timing lengths was not loaded.
+Raises TabFileException if helper method parseNote() fails, Slice.setLength() fails, or an improper measure line was detected. For the former 2, see their docs.
+Raises TabException if Slice.applyDot() or Slice.tie() fail (see their doc.)
+Raises MeasureException if Song.addMeasure() fails (see its doc.)
 """
-def buildSong(song, notes, gString, dString, aString, eString):
-    measure = Measure() # temporary Measure variable that allows 1 Measure at a time to be built, added to the Song, and then reset
-    lastSlice = Slice() # to track ties, this variable keeps track of the last Slice that was added to the Song (either in the current Measure or the prev. one)
-    i = 0
-    while i < len(gString): # allowed since all arrays are of the same length, i can iterate through them
-        slice = Slice()  # temporary Slice to add Notes too from arrays
-        skip1 = False # based on parseNote outputs, skip reading the next index
-        # parses each Note at index i in each array and puts it into the Slice
+def updateSong(song, start, end, notes, gString, dString, aString, eString, lastSlice):
+    measure = Measure()
+    i = start
+    while i <= end:
+        slice = Slice()
+        skip1 = False
+
         if parseNote(gString, i, slice, "G"):
             skip1 = True
         if parseNote(dString, i, slice, "D"):
@@ -217,16 +134,17 @@ def buildSong(song, notes, gString, dString, aString, eString):
         if parseNote(eString, i, slice, "E"):
             skip1 = True
 
-        if slice.isEmpty(): # if Slice was empty, check that index i in the string arrays hold a measure line. If the line is valid, add temp. Measure var. to the Song and reset it
-            if gString[i] == "|":
-                if dString[i] != "|" or aString[i] != "|" or eString[i] != "|":
-                    raise TabFileException("improper measure line detected", "Not all string arrays have a \"|\" at column " + str(i))
-                elif not measure.isEmpty():
+        if slice.isEmpty():
+            if gString[i] == "|" or dString[i] == "|" or aString == "|" or eString[i] == "|":
+                if gString[i] != "|" or dString[i] != "|" or aString[i] != "|" or eString[i] != "|":
+                    raise TabFileException("improper measure line detected", "Not all string arrays have a \"|\" at column " + str(i), line=i)
+                if not measure.isEmpty():
                     song.addMeasure(measure)
                     measure = Measure()
-            # else all the strings at index i had all "-"; do nothing
-        else: # if user specified that the timing wasn't supplied, the notes array was never filled
-            if notes: # if timing was supplied, set the Slice's length to its raw time at notes[i] and tie it if notes[i-1]="+" and apply any dots that follow notes[i]
+                # else don't add empty Measures to the Song
+            # else all the strings at this index don't matter: members of legend or are "-"
+        else:
+            if notes:
                 slice.setLength(notes[i])
                 if i > 0 and notes[i - 1] == "+":
                     lastSlice.tie(slice)
@@ -234,12 +152,115 @@ def buildSong(song, notes, gString, dString, aString, eString):
                 while j < len(notes) and notes[j] == ".":
                     slice.applyDot()
                     j = j + 1
+            # else timing hasn't been loaded, do nothing
             measure.addSlice(slice) # regardless, add the Slice to the temp. measure
             lastSlice = slice # update last Slice for future ties
-        if skip1: # iterate i appropriately to account for 2-digit frets
-            i = i + 2
+
+        if skip1:
+            i += 2
         else:
-            i = i + 1
+            i += 1
+    return lastSlice
+
+"""
+Builds a Song given the list of lines read from the input file and configuration data loaded by the method run(). At the end of
+this method, if it completes successfully, the data from the input tab file will have been parsed and stored appropriately in
+Song, Measure, and Slice objects.
+
+params:
+lines - list of lines read from input file
+song - Song object that will be loaded with Measures and Slices
+hasTiming - config option that specifies whether user has provided timing info.
+tabSpacing - number of spaces in a tab in user's text editor (see README)
+legend - list of other chars. that will appear in string lines (see README)
+loadedLines - array used to report info. on progress of parsing 'lines'
+    loadedLines[0] - number of lines read
+    loadedLines[1] - number of lines interpreted as string/timing lines
+
+Raises TabFileException if any of the following occur:
+    - lengths of strings and timing lines are unequal
+    - the method did not interpret a valid number of string/timing lines
+Furthermore, in the event of helper method updateSong() failing, the following exceptions could be raised:
+    - TabFileException
+    - TabException
+    - MeasureException
+    - TabConfigurationException
+The reasons as to why these exceptions could be raised seemed to lengthy to add here. Instead, look at that method's doc.
+"""
+def buildSong(lines, song, hasTiming, tabSpacing, legend, loadedLines):
+    notes = list()
+    gString = list()
+    dString = list()
+    aString = list()
+    eString = list()
+
+    lastSlice = Slice()
+    nextUpdate = 0
+    while loadedLines[0] < len(lines):
+        sLine = lines[loadedLines[0]].rstrip()
+        if len(sLine) == 0: # whitespace line
+            loadedLines[0] += 1
+            if (hasTiming and loadedLines[1] % 5 == 0) or (not hasTiming and loadedLines[1] % 4 == 0):
+                song.placeExtraLine(" ")
+            # else: this is an empty line in between strings, ignore it
+            continue
+
+        if hasTiming:
+            if loadedLines[1] % 5 == 0:
+                sLine = sLine.expandtabs(tabSpacing)
+                arr = list(sLine)
+                if not song.hasExtraText or checkNoteLine(sLine):
+                    nextUpdate = len(notes)
+                    notes.extend(arr)
+                    loadedLines[1] += 1
+                else:
+                    song.placeExtraLine(sLine)
+            else:
+                arr = list(sLine)
+                if not song.hasExtraText or checkStringLine(sLine, legend):
+                    if loadedLines[1] % 5 == 1:
+                        gString.extend(arr)
+                        for i in range(len(notes), len(gString)):
+                            notes.append(" ")
+                    elif loadedLines[1] % 5 == 2:
+                        dString.extend(arr)
+                    elif loadedLines[1] % 5 == 3:
+                        aString.extend(arr)
+                    elif loadedLines[1] % 5 == 4:
+                        eString.extend(arr)
+                        if len(gString) != len(dString) or len(gString) != len(aString) or len (gString) != len(eString) or len(gString) != len(notes):
+                            raise TabFileException("arrays not loaded properly", "The arrays holding strings (lengths = {0}, {1}, {2}, {3}) and the array holding the timing ({4}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString), len(notes)), line=loadedLines[0])
+                        lastSlice = updateSong(song, nextUpdate, len(gString)-1, notes, gString, dString, aString, eString, lastSlice)
+                    loadedLines[1] += 1
+                else:
+                    song.placeExtraLine(sLine)
+        else:
+            arr = list(sLine)
+            if not song.hasExtraText or checkStringLine(sLine, legend):
+                if loadedLines[1] % 4 == 0:
+                    nextUpdate = len(gString)
+                    gString.extend(arr)
+                elif loadedLines[1] % 4 == 1:
+                    dString.extend(arr)
+                elif loadedLines[1] % 4 == 2:
+                    aString.extend(arr)
+                elif loadedLines[1] % 4 == 3:
+                    eString.extend(arr)
+                    if len(gString) != len(dString) or len(gString) != len(aString) or len(gString) != len(eString):
+                        raise TabFileException("arrays not loaded properly", "The arrays holding strings (lengths = {0}, {1}, {2}, {3}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString)), line=loadedLines[0])
+                    lastSlice = updateSong(song, nextUpdate, len(gString)-1, notes, gString, dString, aString, eString, lastSlice)
+                loadedLines[1] += 1
+            else:
+                song.placeExtraLine(sLine)
+        loadedLines[0] += 1
+
+    if (hasTiming and loadedLines[1] % 5 != 0) or (not hasTiming and loadedLines[1] % 4 != 0): # if timing was supplied, count should be a multiple of 5 and if not it should be a multiple of 4
+        errorMsg = ""
+        if hasTiming:
+            errorMsg = "The number of lines interpreted as strings and timing identifiers ({0}) is incorrect, should be a multiple of 5".format(count)
+        else:
+            errorMsg = "The number of lines interpreted as strings ({0}) is incorrect, should be a multiple of 4".format(count)
+        raise TabFileException("input file line count incorrect", errorMsg)
 
 """
 Reads the input tab file and loads it into its initial representation as 5 arrays (4 for the guitar strings, 1 for the timing symbols), builds the Song using the
@@ -256,7 +277,7 @@ def run(logger):
             raise TabException("No input file can be found.")
 
         inFilename = argv[1]
-        logger.log("Successfully located input file {0}. Beginning tab-reading program configuration...".format(inFilename))
+        logger.log("Successfully located input file \"{0}\". Beginning tab-reading program configuration...".format(inFilename))
         start = time.time()
 
         rdr = ConfigReader()
@@ -267,7 +288,6 @@ def run(logger):
 
         hasTiming = rdr.getTiming()
         tabSpacing = rdr.getTabSpacing()
-        hasExtra = rdr.getHasExtra()
         legend = rdr.getLegend()
         Slice.loadMaps()
 
@@ -280,22 +300,31 @@ def run(logger):
         try: # try to load list of strings from tab input file and raise a more appropriate exception than IOError to the user if one occurs
             with open(inFilename) as inputFile:
                 lines = inputFile.readlines()
-            logger.log("Input tab file {0} was opened and closed successfully.".format(inFilename))
+            logger.log("Input tab file \"{0}\" was opened and closed successfully.".format(inFilename))
         except IOError as i:
             raise TabIOException("opening tab file", str(i))
 
-        loadLinesIntoLists(lines, notes, gString, dString, aString, eString, hasTiming, tabSpacing, hasExtra, legend)
-        logger.log("Data in input tab file {0} was loaded successfully into array representation. ".format(inFilename))
-        song = Song(rdr.getGapsize())
-        buildSong(song, notes, gString, dString, aString, eString)
-        logger.log("Data in input tab file {0} was parsed and loaded into a Song successfully. ".format(inFilename))
+        song = Song(rdr.getGapsize(), rdr.getHasExtra())
+        loadedLines = [0, 0]
+        buildSong(lines, song, hasTiming, tabSpacing, legend, loadedLines)
+        logger.log("Song building of the data from \"{0}\" finished without any parsing errors. {1} out of the {2} loaded lines were read successfully.".format(inFilename, loadedLines[0], len(lines)))
+        logStr = ""
+        logType = Logger.INFO
+        if loadedLines[1] > 0:
+            logStr += "{0} out of the {1} read lines were interpreted as string lines"
+        else:
+            logType = Logger.WARNING
+            logStr += "No lines were interpreted as string lines"
+        if hasTiming:
+            logStr += " and timing lines"
+        logger.log(type=logType, msg=logStr.format(loadedLines[1], loadedLines[0]) + "; if this is not the expected count, please check your input file and the configuration file.")
 
         pathNoExt = argv[1][:-4] # get file path without 4-character extension & use it to create output filename
         outFilename = pathNoExt+"_staff.html"
         try: # try to write Song output to HTML file and raise a more appropriate exception than IOError to the user if one occurs
             with open(outFilename, "w+", encoding="utf-8") as outFile:
                 outFile.write("<!DOCTYPE HTML><html><title>" + pathNoExt[pathNoExt.rfind("\\")+1:]+" staff </title><body><pre>" + str(song) + "</pre></body></html>")
-            logger.log("Output HTML file {0} was opened and data in Song created from input tab file {1} was written successfully before closing.".format(outFilename, inFilename))
+            logger.log("Output HTML file \"{0}\" was opened and {1} Measures created from input tab file {2} were written successfully before closing.".format(outFilename, song.numMeasures(), inFilename))
         except IOError as i:
             raise TabIOException("creating HTML file", str(i))
         logger.log("Program completed successfully in {0} seconds.".format(round(time.time()-start, 6)))
@@ -310,7 +339,7 @@ def run(logger):
         logger.log(msg=str(e), type=Logger.ERROR)
 
 """
-Script that runs program. The 2nd program argument (this file is the 1st one) must be the input tab's file name.
+Script that runs program. The 2nd program argument (this file's name is the 1st one) must be the input tab's file name.
 """
 try:
     logger = Logger()
@@ -319,6 +348,6 @@ try:
 except LoggingException as l:
     print(l)
 except Exception as e:
-    logger.log(msg="An unexpected error occurred: " + str(traceback.format_exc()), type=Logger.ERROR)
+    logger.log(msg="An unexpected error occurred: " + str(e), type=Logger.ERROR)
 finally:
     logger.close()

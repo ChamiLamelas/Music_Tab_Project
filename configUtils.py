@@ -197,7 +197,7 @@ class ConfigReader:
         DEFAULT_HAS_EXTRA = ConfigReader.SETTING_YES
         DEFAULT_LEGEND = ""
 
-        defaultConfig = "# This is the configuration file for the tab reader program. \n# You can leave comments throughout this file by starting each comment line with a hashtag, like with Python.\n"+ConfigReader.TIMING_SUPPLIED_ID+"="+DEFAULT_TIMING_SUPPLIED+"\n"+ConfigReader.GAPSIZE_ID+"="+str(DEFAULT_GAPSIZE)+"\n"+ConfigReader.TAB_SPACING_ID+"="+str(DEFAULT_TAB_SPACING)+"\n"+ConfigReader.HAS_EXTRA_ID+"="+str(DEFAULT_HAS_EXTRA)+"\n"+ConfigReader.LEGEND_ID+"="+str(DEFAULT_LEGEND)
+        defaultConfig = "# This is the configuration file for the tab reader program. \n# You can add line comments in the configuration file similarly to how it is done in Python: \n# (1) Placing a hashtag \"#\" at the beginning of each comment line. \n# (2) Placing a \"#\" at the end of configuration lines. The program will ignore any text following the hashtag.\n"+ConfigReader.TIMING_SUPPLIED_ID+"="+DEFAULT_TIMING_SUPPLIED+"\n"+ConfigReader.GAPSIZE_ID+"="+str(DEFAULT_GAPSIZE)+"\n"+ConfigReader.TAB_SPACING_ID+"="+str(DEFAULT_TAB_SPACING)+"\n"+ConfigReader.HAS_EXTRA_ID+"="+str(DEFAULT_HAS_EXTRA)+"\n"+ConfigReader.LEGEND_ID+"="+str(DEFAULT_LEGEND)
 
         try: # try to write the default configuration to the config file, wrap any IOError that occurs as a TabConfigurationException
             with open(ConfigReader.CONFIG_FILENAME, "w+") as configFile:

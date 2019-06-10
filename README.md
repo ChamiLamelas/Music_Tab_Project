@@ -1,20 +1,27 @@
 # Music Tab Project
 
-The primary purpose of this project was to provide a program that takes a text file holding a bass guitar tab and converting it into sheet music displayed in an HTML file.
+The primary purpose of this project was to provide a program that takes an ASCII text file holding a bass guitar tab and converting it into sheet music. The sheet music is stored in an HTML file and can be displayed in a browser.
 
 **Date:** Summer 2019
 
 ## Getting Started
 
-This section will inform you of the necessary prerequisites to run this program, the necessary files, and how to prepare program input files.
+This section will inform you of the necessary prerequisites to run this program, the necessary files, and how to prepare program input files. It may be helpful for you to read about what data can be put into an ASCII text file. Here are some useful links:
 
-**Note:** the installation and running of this program has *NOT*  been tested on OSX.
+* [Wikipedia Article on a Text File](https://en.wikipedia.org/wiki/Text_file)
+* [Wikipedia Article on ASCII](https://en.wikipedia.org/wiki/ASCII)
+* [An ASCII Table](http://www.asciitable.com/)
+
+**Note:** the installation and running of this program has been tested *only* on Windows 10 using Python 3.7.2 and Python 3.7.3. Other versions of Python 3 have not been tested, but should be compatible. However, Python 2 is **NOT** compatible.
 
 ### Prerequisites
 
-First, you need to install a version of Python **3**. Python 2.x is *NOT* supported. This program was written and tested using *Python 3.7.2*. To download Python you can go [here](https://www.python.org/downloads/). Make sure that Python has been added to the system path.
+First, download a version of Python **3**. To do so, you can go to the [Python download page](https://www.python.org/downloads/). In the installation wizard, *make sure that Python is added to the system path* so that you can run the Python commands discussed in the section [Running the Program](## Running the Program).
 
-Second, the program's output was tested in [Mozilla Firefox 67.0 (64-bit)](https://www.mozilla.org/en-US/firefox/new/) and [Google Chrome Version 74.0.3729.169 (Official Build) (64-bit)](https://www.google.com/chrome/) on Windows Version 10.0.17763.503. So, it may be best to download one of those browsers. Their download links are embedded in their names.
+Second, the program's output was tested in Mozilla Firefox 67.0 (64-bit) and Google Chrome Version 74.0.3729.169 (Official Build) (64-bit) on Windows Version 10.0.17763.503. So, it may be best to download one of those browsers. You can download the latest versions of these browsers below:
+
+* [Firefox Download Page](https://www.mozilla.org/en-US/firefox/new/)
+* [Chrome Download Page](https://www.google.com/chrome/)
 
 ### Installing
 
@@ -56,7 +63,7 @@ These lines should *only* be present if the timing is supplied in the tab, which
 timingsupplied=true
 ```
 
-More on the configuration file is discussed below in the subsection "Using the Configuration File".
+More on the configuration file is discussed below in the subsection [Using the Configuration File](## Using the Configuration File).
 
 **(3)** The timing letter ID that signifies the length of a note is assumed to be located above the first digit of the fret that the note corresponds to. For example, if note on the E-string 10th fret (D) is meant to be a quarter note, the portion of the input tab that corresponds to this should appear as so:
 
@@ -106,7 +113,7 @@ I have added this section before running the program because it is essential to 
 
 The configuration file is designed to provide the user more freedom in how the program behaves on input data. It may be best to examine the default configuration file before writing one on your own and make sure it has the same name as the default configuration file. If you are using Windows, I would recommend using WordPad if you do not have another text editor such as Atom or Notepad++ to open the config file, as Notepad doesn't display the line breaks in the default config file.
 
-Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Comments can also be made after configuration lines by placing a "#". The program will ignore any text following the hashtag. Lastly, errors in the configuration file are also reported to the log file.
+Furthermore, to help yourself, you can add line comments in the configuration file by placing a hashtag "#" at the beginning of each comment line (as with Python). Comments can also be made at the end of configuration lines by placing a "#". The program will ignore any text following the hashtag. Lastly, errors in the configuration file are also reported to the log file.
 
 **Important:** If you wish to write your own configuration file and provide different settings for the various options that can be configured in this program, make sure you put the new options and settings in the same order as in the default configuration file. Otherwise, an error will occur.
 
@@ -192,6 +199,7 @@ The reason that the staff output is displayed in an HTML file as opposed to an A
 
 If interested, here are possible major additions to later versions of the project:
 
+* Using keys alongside the input file to output better sheet music that doesn't have to attach "#" to every sharped note.
 * Support for non-standard tuning (G, D, A, E).
 * A version for instruments other than a 4-string bass.
 * Support for other timing identifiers than W, H, Q, E, and S for whole note, half note, quarter note, eighth note, and sixteenth note respectively.

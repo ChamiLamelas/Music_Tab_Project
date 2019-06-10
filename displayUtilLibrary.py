@@ -131,7 +131,7 @@ class StaffString:
     index - the index of the desired row
     """
     def rowIsEmpty(self, index):
-        return len(self.buf[index].split()) == 0
+        return len(self.buf[index].strip()) == 0
 
     """
     Returns a String representation of this StaffString object.
@@ -157,7 +157,7 @@ class StaffString:
                 out.append(ln)
             if w < self.width: # if it was the latter while condition that terminated the loop, record the last newline col.
                 lastNewLine = w
-            out.append("\n") # add a separater line to the output that has the "newline" effect on regular strings
+                out.append("\n") # add a separater line to the output that has the "newline" effect on regular strings
         return "\n".join(out) # return a string that puts all the created lines on separate lines
 
 """

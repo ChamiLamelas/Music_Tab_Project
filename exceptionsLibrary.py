@@ -31,8 +31,13 @@ class MeasureException(TabException):
         super().__init__("Operation on Measure failed: {0}. Reason: {1}.".format(op, reason))
 
 class TabFileException(TabException):
-    def __init__(self, issue, reason):
-        super().__init__("Issue with the tab file: \"{0}\". Reason: {1}. Please review the input file and the guidelines outlined in the program README here {2}..".format(issue, reason, README_LINK))
+    DEFAULT_LINE = -1
+
+    def __init__(self, issue, reason, line=DEFAULT_LINE):
+        errorMsg = "Issue with the tab file: \"{0}\". Reason: {1}.".format(issue, reason)
+        if line != TabFileException.DEFAULT_LINE:
+            errorMsg += " Approximate line number: {0}.".format(line)
+        super().__init__(errorMsg + " Please review the input file and the guidelines outlined in the program README here {0}".format(README_LINK))
 
 class TabIOException(TabException):
     def __init__(self, issue, reason):

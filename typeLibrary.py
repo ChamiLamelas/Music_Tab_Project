@@ -394,16 +394,6 @@ class Measure:
         # in the case of self.length < 1, for now will leave an empty space (don't know if this is formal though)
 
     """
-    Returns the last Slice in the Measure.
-
-    Raises a MeasureException if the Measure is empty.
-    """
-    def getLastSlice(self):
-        if self.isEmpty():
-            raise MeasureException("getting the last slice of a Measure.", " The Measure is empty.")
-        return self.slices[len(self.slices)-1]
-
-    """
     Returns a StaffString representation of this Measure given a gapsize which is used to determine how many "-" separate Slices in the Measure.
 
     params:
@@ -446,11 +436,13 @@ class Song:
 
     Raises a TabConfigurationException if gapsize < 0
     """
-    def __init__(self, gapsize):
+    def __init__(self, gapsize, hasExtraText):
         if gapsize < 0:
             raise TabConfigurationException("Unacceptable gapsize ({0}). The gapsize must be a nonnegative integer.".format(gapsize))
         self.measures = list()
         self.gapsize = gapsize
+        self.extraText = list()
+        self.hasExtraText = hasExtraText
 
     """
     Adds a Measure to the Song.
@@ -465,6 +457,26 @@ class Song:
         self.measures.append(measure)
 
     """
+    Returns the number of Measures in this Song.
+    """
+    def numMeasures(self):
+        return len(self.measures)
+
+    """
+    Places an extra line into the Song's extra text storage.
+
+    params:
+    line - a line of extra text
+    """
+    def placeExtraLine(self, line):
+        if self.numMeasures() >= len(self.extraText):
+            while self.numMeasures() > len(self.extraText):
+                self.extraText.append("")
+            self.extraText.append(line)
+        else:
+            self.extraText[self.numMeasures()] += "\n" + line
+
+    """
     DEPRECATED.
 
     Prints the Song to the console. Use only for debugging.
@@ -476,31 +488,30 @@ class Song:
 
     """
     Returns a sheet music String representation of this Song using StaffString utility class and its String represenation.
+
+    Raises a TabFileException if the extra text in the file was not loaded properly.
     """
     def __str__(self):
-        MAX_ROW_WIDTH = 140 # maximum number of characters in a row of this Song. A row is some number of Measures.
-        out = StaffString("|")
-        out.union(StaffString("|"))
-        curr = StaffString(str="", restrict=False) # temporary row holder, used & explained in loop below
-        for i in range(0, len(self.measures)):
-            nextMeasure = self.measures[i].getStaffStr(self.gapsize) # temporary var. to hold next Measure to be added to the Song
-            # if adding the next Measure in this row of the StaffString, add the current row to the output StaffString followed by a newline StaffString. If a tie begins in the
-            # last Slice of the last added Measure, add its corresponding measure-StaffString to the output. Otherwise, add a regular measure line StaffString. Lastly, reset curr
-            if curr.width + nextMeasure.width > MAX_ROW_WIDTH:
-                out.union(curr)
-                out.union(StaffString.newLineStaffString)
-                if self.measures[i-1].getLastSlice().tieBegins:
-                    out.union(self.measures[i-1].getLastSlice().getCorrMeasureStaffStr())
-                else:
-                    out.union(StaffString("|"))
-                curr = StaffString(str="", restrict=False)
-            # else, continue
-            curr.union(nextMeasure)
-            # for any Measure that is added to curr, it must also have an appropriate measure line StaffString added as in the case a few lines above
-            if self.measures[i].getLastSlice().tieBegins:
-                curr.union(self.measures[i].getLastSlice().getCorrMeasureStaffStr())
-            else:
-                curr.union(StaffString("|"))
-        out.union(curr) # in case last row held in curr wasn't over max row width, it should be added to the output StaffString
-        out.union(StaffString("|"))
-        return str(out)
+        if len(self.extraText) > self.numMeasures() + 1:
+                raise TabFileException("extra text loading failure", "The length of the extra text list ({0}) is not allowed. It must be less than or equal to {1}".format(len(self.extraText), self.numMeasures() + 1))
+        out = list()
+        s = StaffString("", restrict=False)
+        if len(self.extraText) > 0 and self.extraText[0] != "":
+            out.append(self.extraText[0])
+        for i in range(0, self.numMeasures()):
+            if i == 0:
+                s.union(StaffString("|"))
+                s.union(StaffString("|"))
+            s.union(self.measures[i].getStaffStr(self.gapsize))
+            s.union(StaffString("|"))
+            if i == self.numMeasures() - 1:
+                s.union(StaffString("|"))
+            if i + 1 < len(self.extraText) and self.extraText[i + 1] != "":
+                out.append(str(s))
+                out.append(self.extraText[i + 1])
+                s = StaffString("|")
+        if s.width > 1:
+            out.append(str(s))
+        if len(self.extraText) == self.numMeasures() + 1:
+            out.append(self.extraText[self.numMeasures()])
+        return "\n".join(out)
