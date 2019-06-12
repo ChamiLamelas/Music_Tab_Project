@@ -17,7 +17,7 @@ This section will inform you of the necessary prerequisites to run this program,
 
 ### Prerequisites
 
-First, download a version of Python **3**. To do so, you can go to the [Python download page](https://www.python.org/downloads/). In the installation wizard, *make sure that Python is added to the system path* so that you can run the Python commands discussed in the section [Running the Program](##running-the-program).
+First, download a version of Python **3**. To do so, you can go to the [Python download page](https://www.python.org/downloads/). In the installation wizard, *make sure that Python is added to the system path* so that you can run the Python commands discussed in the section [Running the Program](#running-the-program).
 
 Second, the program's output was tested in Mozilla Firefox 67.0 (64-bit) and Google Chrome Version 74.0.3729.169 (Official Build) (64-bit) on Windows Version 10.0.17763.503. So, it may be best to download one of those browsers. You can download the latest versions of these browsers below:
 
@@ -45,7 +45,7 @@ The input tab files follow the general format of tabs found on [Ultimate Guitar 
 * vertical bar: "|"
 * hyphen: "-"
 * digits (0-9)
-* any characters in the playing legend, see [Creating a Playing Legend](###creating-a-playing-legend)
+* any characters in the playing legend, see [Creating a Playing Legend](#creating-a-playing-legend)
 
 *(iv)* The last non-whitespace character must be a "|".  
 *(v)* Be at least 4 characters long, not counting the whitespace at either end.
@@ -65,7 +65,7 @@ These lines should *only* be present if the timing is supplied in the tab, which
 timingsupplied=true
 ```
 
-More on the configuration file is discussed below in the subsection [Using the Configuration File](##using-the-configuration-file).
+More on the configuration file is discussed below in the subsection [Using the Configuration File](#using-the-configuration-file).
 
 **(3)** The timing letter ID that signifies the length of a note is assumed to be located above the first digit of the fret that the note corresponds to. For example, if note on the E-string 10th fret (D) is meant to be a quarter note, the portion of the input tab that corresponds to this should appear as so:
 

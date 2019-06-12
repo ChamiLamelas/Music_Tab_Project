@@ -149,10 +149,10 @@ def updateSong(song, start, end, notes, gString, dString, aString, eString, last
         else:  # if user specified that the timing wasn't supplied, the notes array was never filled
             if notes: # if timing was supplied, set the Slice's length to its raw time at notes[i] and tie it if notes[i-1]="+" and apply any dots that follow notes[i]
                 slice.setLength(notes[i])
-                if i > 0 and notes[i - 1] == "+":
+                if i > 0 and notes[i - 1] == Slice.tieSymbol:
                     lastSlice.tie(slice)
                 j = i+1
-                while j < len(notes) and notes[j] == ".":
+                while j < len(notes) and notes[j] == Slice.dotSymbol:
                     slice.applyDot()
                     j = j + 1
             # else timing hasn't been loaded, do nothing
@@ -175,9 +175,7 @@ Song, Measure, and Slice objects.
 params:
 lines - list of lines read from input file
 song - Song object that will be loaded with Measures and Slices
-hasTiming - config option that specifies whether user has provided timing info.
-tabSpacing - number of spaces in a tab in user's text editor (see README)
-playingLegend - list of other chars. that will appear in string lines (see README)
+rdr - ConfigReader that holds program config. data
 loadedLines - array used to report info. on progress of parsing 'lines' to main method 'run()' since Python lists are passed by ref.
     loadedLines[0] - number of lines read
     loadedLines[1] - number of lines interpreted as string/timing lines
@@ -192,12 +190,18 @@ Furthermore, in the event of helper method updateSong() failing, the following e
     - TabConfigurationException
 The reasons as to why these exceptions could be raised seemed to lengthy to add here. Instead, look at that method's doc.
 """
-def buildSong(lines, song, hasTiming, tabSpacing, playingLegend, loadedLines):
+def buildSong(lines, song, rdr, loadedLines):
     notes = list() # list that holds timing info
     gString = list() # list that holds data from g-string (fret numbers, measure lines, dashes, and anything in 'legend')
     dString = list() # list that holds data from d-string ("                                                           ")
     aString = list() # list that holds data from a-string ("                                                           ")
     eString = list() # list that holds data from e-string ("                                                           ")
+
+    # load repeatedly called config. options into tmp. variables so internal checks by ConfigReader aren't done each timing the setting needs to be retrieved (see ConfigReader's doc.). This is safe as it is known that the config. options will not be edited in this method
+    hasTiming = rdr.isTimingSupplied()
+    hasExtra = rdr.isExtraTextPresent()
+    tabSpacing = rdr.getTabSpacing()
+    playingLegend = rdr.getPlayingLegend()
 
     lastSlice = Slice() # holds last Slice to be added to the Song. This is kept updated by calls to 'updateSong()'
     nextUpdate = 0 # the helper method 'updateSong()' loads portions of the lists at a time into 'song'. This var. signifies the beginning of the next portion to be added to 'song'
@@ -220,7 +224,7 @@ def buildSong(lines, song, hasTiming, tabSpacing, playingLegend, loadedLines):
                 # the extension of timing lines (with additional spaces) as they are placed into the notes array in this method is done properly.
                 sLine = sLine.expandtabs(tabSpacing)
                 arr = list(sLine)
-                if not song.hasExtraText or checkNoteLine(sLine): # if 'song' doesn't have extra text or if 'sLine' is a valid note-timing line, add it to the notes list and update 'loadedLines[1]'
+                if not hasExtra or checkNoteLine(sLine): # if 'song' doesn't have extra text or if 'sLine' is a valid note-timing line, add it to the notes list and update 'loadedLines[1]'
                     nextUpdate = len(notes) # set 'nextUpdate' to be the first index of the new data added to the timing list. It is assumed by previous calls to 'updateSong()' that the data from all 5 lists have been read up to this index. Otherwise the error below would have been raised
                     notes.extend(arr)
                     loadedLines[1] += 1
@@ -228,7 +232,7 @@ def buildSong(lines, song, hasTiming, tabSpacing, playingLegend, loadedLines):
                     song.placeExtraLine(sLine)
             else:
                 arr = list(sLine)
-                if not song.hasExtraText or checkStringLine(sLine, playingLegend): # if 'song' doesn't have any extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
+                if not hasExtra or checkStringLine(sLine, playingLegend): # if 'song' doesn't have any extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
                     if loadedLines[1] % 5 == 1:
                         gString.extend(arr)
                          # need to update the last addition to the notes list to add spaces to make the timing line of the input file have the same length as the g-string list below it
@@ -251,7 +255,7 @@ def buildSong(lines, song, hasTiming, tabSpacing, playingLegend, loadedLines):
                     song.placeExtraLine(sLine)
         else: # the user has specified that no timing was supplied -> read lines in groups of 4
             arr = list(sLine)
-            if not song.hasExtraText or checkStringLine(sLine, playingLegend): # if 'song' doesn't have extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
+            if not hasExtra or checkStringLine(sLine, playingLegend): # if 'song' doesn't have extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
                 if loadedLines[1] % 4 == 0:
                     nextUpdate = len(gString) # set 'nextUpdate' to be the first index of the new data added to the g-string list. It is assumed by previous calls to 'updateSong()' that the data from all 4 lists have been read up to this index. Otherwise the error below would have been raised
                     gString.extend(arr)
@@ -263,7 +267,7 @@ def buildSong(lines, song, hasTiming, tabSpacing, playingLegend, loadedLines):
                     eString.extend(arr)
                     # check that the string lists have the same length before trying to load the list data into music type objects. Otherwise, 'updateSong()' may run into an indexing error
                     if len(gString) != len(dString) or len(gString) != len(aString) or len(gString) != len(eString):
-                        raise TabFileException("arrays not loaded properly", "The arrays holding strings (lengths = {0}, {1}, {2}, {3}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString)), line=loadedLines[0])
+                        raise TabFileException("lists not loaded properly", "The lists holding strings (lengths = {0}, {1}, {2}, {3}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString)), line=loadedLines[0])
                     lastSlice = updateSong(song, nextUpdate, len(gString)-1, notes, gString, dString, aString, eString, lastSlice)
                 loadedLines[1] += 1
             else:
@@ -292,20 +296,20 @@ def run(logger):
             raise TabException("No input file can be found.")
 
         inFilename = argv[1]
-        logger.log("Successfully located input file \"{0}\" in program args. Beginning tab-reading program configuration...".format(inFilename))
+        logger.log("Successfully located input file \"{0}\" in program arguments. Beginning tab-reading program configuration...".format(inFilename))
 
         rdr = ConfigReader()
-        if rdr.readConfigFile(): # prepare config. file by loading it into a ConfigReader.
+        if rdr.open(): # prepare config. file by loading it into a ConfigReader.
             logger.log("Configuration file was found and loaded successfully.")
         else:
             logger.log(msg="Configuration file was not found. Default configuration file was created and loaded instead.", type=Logger.WARNING)
 
-        hasTiming = rdr.getTiming()
-        tabSpacing = rdr.getTabSpacing()
-        playingLegend = rdr.getPlayingLegend()
+        rdr.readAllOptions() # read all the config options
+        Slice.tieSymbol = rdr.getTieSymbol()
+        Slice.dotSymbol = rdr.getDotSymbol()
         Slice.loadMaps()
 
-        song = Song(rdr.getGapsize(), rdr.getHasExtra())
+        song = Song(rdr.getGapsize())
         loadedLines = [0, 0]
 
         logger.log("The contents of the configuration file were read successfully. Beginning tab-reading...")
@@ -318,7 +322,7 @@ def run(logger):
             raise TabIOException("opening tab file", str(i))
 
         start = time.time()
-        buildSong(lines, song, hasTiming, tabSpacing, playingLegend, loadedLines)
+        buildSong(lines, song, rdr, loadedLines)
 
         # log a more detailed report of the result of Song building based on the data in 'loadedLines'
         logger.log("Song building of the data from \"{0}\" finished without any parsing errors. {1} out of the {2} loaded lines were read successfully.".format(inFilename, loadedLines[0], len(lines)))
@@ -329,7 +333,7 @@ def run(logger):
         else:
             logType = Logger.WARNING
             logStr += "No lines were interpreted as string lines"
-        if hasTiming:
+        if rdr.isTimingSupplied():
             logStr += " and timing lines"
         logger.log(type=logType, msg=logStr + ". {0} Measure objects were created.".format(song.numMeasures()))
 

@@ -44,7 +44,7 @@ class Note:
             if nFret < 0 or nFret > MAX_FRET:
                 raise ValueError()
         except ValueError as v:
-            raise TabFileException("invalid fret value ", "Fret cannot be \"{0}\", it must be an integer in the range [0, {0}]".format(nFret, MAX_FRET))
+            raise TabFileException("invalid fret value ", "Fret cannot be \"{0}\", it must be an integer in the range [0, {1}]".format(nFret, MAX_FRET))
         halfsteps = -1 # number of halfsteps from lowest E on bass
         if string == "E":
             halfsteps = nFret
@@ -57,8 +57,6 @@ class Note:
         else:
             raise TabFileException("invalid string name", "\"{0}\" is not a valid string id. Please review string identification.".format(string))
 
-        # order holds the ordering of notes on the guitar starting with the letter corresponding to the lowest note on the bass and for a given index i in order,
-        # counts[i] holds the number of staff positions (lines & spaces) before orders[i] on the staff.
         order = ["E","F","F#","G","G#","A","A#","B","C","C#","D","D#"]
         counts = [0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6]
 
@@ -113,7 +111,9 @@ lengths - a dictionary that maps the symbols taken from the input file (the same
 lengths of time.
 unicode - a dictionary that maps the same set of symbols that are keys in lengths to unicode values that hold their representations to be displayed on the staff
 output. Unicode values taken from https://unicode.org/charts/PDF/U1D100.pdf.
-EMPTY_SLICE - used by StaffString in printing empty slices
+NO_TIMING_SYMBOL - key in unicode mapping that points to the unicode character to be placed on sheet music when timing for a Slice is not specified
+tieSymbol - character to be placed before a timing symbol that denotes the Slice with that timing is tied to the prior Slice
+dotSymbol - character to be placed (can be more than once) after a timing symbol that denotes a Slice's timing is dotted
 
 Note: in StaffString object representation, a Note n at position n.staffpos will be at index = StaffString.STAFF_HEIGHT - 1 - n.staffPos. This is because moving bottom->top
 in a StaffString corresponds to moving bottom->top in a Staff. Thus, placing n at index = n.staffPos in a StaffString would not do. This calculation is used throughout the
@@ -123,7 +123,9 @@ class Slice:
 
     lengths = dict()
     unicode = dict()
-    NO_SYMBOL = "no symbol"
+    NO_TIMING_SYMBOL = "no symbol"
+    tieSymbol = ""
+    dotSymbol = ""
 
     """
     Static method used to load the 2 dictionaries from a set of lists. If the symbol list is None, then the dictionaries are loaded with default values.
@@ -149,7 +151,7 @@ class Slice:
             for i in range(0, len(ids)):
                 Slice.lengths[ids[i]] = times[i]
                 Slice.unicode[ids[i]] = unicode[i]
-        Slice.unicode[Slice.NO_SYMBOL] = "\u2022"
+        Slice.unicode[Slice.NO_TIMING_SYMBOL] = "\u2022"
 
     """
     Constructs an empty Slice object.
@@ -158,12 +160,16 @@ class Slice:
     """
     def __init__(self):
         if not Slice.lengths:
-            raise TabConfigurationException("Time lengths not loaded properly. Please review program set-up.")
+            raise TabConfigurationException("Time lengths not loaded properly. Please review program configuration.")
+        if not Slice.tieSymbol:
+            raise TabConfigurationException("Tie symbol has not been loaded. Please review program configuration.")
+        if not Slice.dotSymbol:
+            raise TabConfigurationException("Dot symbol has not been loaded. Please review program configuration.")
         self.notes = list()
         self.length = 0 # if the length is specified it must be greater than 0
         self.numDots = 0
         self.nextDotLength = -1
-        self.symbol = Slice.NO_SYMBOL
+        self.symbol = Slice.NO_TIMING_SYMBOL
         self.maxStaffPos = -1
         self.minStaffPos = StaffString.STAFF_HEIGHT
         self.hasSharp = False
@@ -427,8 +433,7 @@ This class represents a Song, that is an ordered list of Measures. Song objects 
 
 measures - a list of Measures
 gapsize - The Song's gap size is the number of "-" or " " between 2 notes. The extra text option specifies whether an input tab file whose data is to be loaded into this Song object contains extraneous text that are not string lines, timing lines, or whitespace.
-hasExtraText - The extra text option specifies whether an input tab file whose data is to be loaded into this Song object contains extraneous text that are not string lines, timing lines, or whitespace.
-extraText - a list of character strings that hold extraneous text AND whitespace if hasExtraText is True or JUST whitespace if hasExtraText is False. For a given index 'i', 'extraText[i]; holds the extra text that occurs after 'i' Measures of the Song.
+extraText - a list of character strings that hold extraneous text AND whitespace if the user has set the extra text config. option to True or JUST whitespace if the option is False. For a given index 'i', 'extraText[i]; holds the extra text that occurs after 'i' Measures of the Song.
 """
 class Song:
 
@@ -437,15 +442,13 @@ class Song:
 
     params:
     gapsize - a user-specified gapsize
-    hasExtraText - a user-specified extra text setting.
 
     Raises a TabConfigurationException if gapsize < 0
     """
-    def __init__(self, gapsize, hasExtraText):
+    def __init__(self, gapsize):
         self.measures = list()
         self.gapsize = gapsize
         self.extraText = list()
-        self.hasExtraText = hasExtraText
 
     """
     Adds a Measure to the Song.
