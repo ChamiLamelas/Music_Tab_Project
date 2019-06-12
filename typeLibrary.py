@@ -1,14 +1,14 @@
 """
-This file provides a library of music types (or classes) that are used by tabReader.py.
+This file provides a library of music types (or classes) that are used by tabParser.py.
 
 Types:
 
-Note - used by Slice, not used in tabReader.py
+Note - used by Slice
 Slice - used by Measure
 Measure - used by Song
 Song - ultimately holds full conversion from tab to sheet music.
 
-In general, tabReader.py fills a Song with Slices and Measures and then gets the String representation of Song (which wraps a StaffString representation).
+In general, tabParser.py fills a Song with Slices and Measures and then gets the String representation of Song (which wraps a StaffString representation).
 
 author: Chami Lamelas
 date: Summer 2019
@@ -105,71 +105,29 @@ hasSharp - truth value of the Slice containing a Note who is a sharp
 tieBegins - truth value of the Slice being the start of a tie
 tieEnds - truth value of the Slice being the end of a tie
 
-In addition, the class has 3 static variables:
-
-lengths - a dictionary that maps the symbols taken from the input file (the same as the kind stored in the object attribute symbol) to decimal values that represent
-lengths of time.
-unicode - a dictionary that maps the same set of symbols that are keys in lengths to unicode values that hold their representations to be displayed on the staff
-output. Unicode values taken from https://unicode.org/charts/PDF/U1D100.pdf.
-NO_TIMING_SYMBOL - key in unicode mapping that points to the unicode character to be placed on sheet music when timing for a Slice is not specified
-tieSymbol - character to be placed before a timing symbol that denotes the Slice with that timing is tied to the prior Slice
-dotSymbol - character to be placed (can be more than once) after a timing symbol that denotes a Slice's timing is dotted
-
 Note: in StaffString object representation, a Note n at position n.staffpos will be at index = StaffString.STAFF_HEIGHT - 1 - n.staffPos. This is because moving bottom->top
 in a StaffString corresponds to moving bottom->top in a Staff. Thus, placing n at index = n.staffPos in a StaffString would not do. This calculation is used throughout the
 Slice class, which is why it is explained here.
 """
 class Slice:
 
-    lengths = dict()
-    unicode = dict()
-    NO_TIMING_SYMBOL = "no symbol"
-    tieSymbol = ""
-    dotSymbol = ""
-
-    """
-    Static method used to load the 2 dictionaries from a set of lists. If the symbol list is None, then the dictionaries are loaded with default values.
-
-    params:
-    ids - list of symbols that appear in input file
-    times - times corresponding to each symbol
-    unicode - unicode values corresponding to each symbol
-    """
-    def loadMaps(ids=None, times=None, unicode=None):
-        if ids is None:
-            Slice.lengths["W"] = 1
-            Slice.unicode["W"] = "\U0001D15D"
-            Slice.lengths["H"] = 0.5
-            Slice.unicode["H"] = "\U0001D15E"
-            Slice.lengths["Q"] = 0.25
-            Slice.unicode["Q"] = "\U0001D15F"
-            Slice.lengths["E"] = 0.125
-            Slice.unicode["E"] = "\U0001D160"
-            Slice.lengths["S"] = 0.0625
-            Slice.unicode["S"] = "\U0001D161"
-        else:
-            for i in range(0, len(ids)):
-                Slice.lengths[ids[i]] = times[i]
-                Slice.unicode[ids[i]] = unicode[i]
-        Slice.unicode[Slice.NO_TIMING_SYMBOL] = "\u2022"
-
     """
     Constructs an empty Slice object.
 
-    Raises TabConfigurationException if Slice.lengths is empty.
+    Raises TabConfigurationException if Song.lengths is empty.
     """
     def __init__(self):
-        if not Slice.lengths:
+        if not Song.lengths:
             raise TabConfigurationException("Time lengths not loaded properly. Please review program configuration.")
-        if not Slice.tieSymbol:
+        if not Song.tieSymbol:
             raise TabConfigurationException("Tie symbol has not been loaded. Please review program configuration.")
-        if not Slice.dotSymbol:
+        if not Song.dotSymbol:
             raise TabConfigurationException("Dot symbol has not been loaded. Please review program configuration.")
         self.notes = list()
         self.length = 0 # if the length is specified it must be greater than 0
         self.numDots = 0
         self.nextDotLength = -1
-        self.symbol = Slice.NO_TIMING_SYMBOL
+        self.symbol = Song.NO_TIMING_SYMBOL
         self.maxStaffPos = -1
         self.minStaffPos = StaffString.STAFF_HEIGHT
         self.hasSharp = False
@@ -214,7 +172,7 @@ class Slice:
     Raises a TabException if the symbol is not found
     """
     def checkLengthSymbol(symbol):
-        if symbol not in Slice.lengths:
+        if symbol not in Song.lengths:
             raise TabFileException("symbol not recognized", "\"{0}\" is not a valid symbol. Please review symbol identification".format(symbol))
 
     """
@@ -223,14 +181,14 @@ class Slice:
     params:
     symbol - a given length symbol
 
-    pre-condition: the time length associated with 'symbol' in 'Slice.lengths' must be in (0, 1].
+    pre-condition: the time length associated with 'symbol' in 'Song.lengths' must be in (0, 1].
 
     Raises a TabException if checkLengthSymbol(symbol) fails (see above doc.)
     """
     def setLength(self, symbol):
         Slice.checkLengthSymbol(symbol)
         self.symbol = symbol
-        self.length = Slice.lengths[symbol]
+        self.length = Song.lengths[symbol]
         self.nextDotLength = self.length/2
 
     """
@@ -278,7 +236,7 @@ class Slice:
         DOT = "\u00b7"
 
         for note in self.notes:
-            str = Slice.unicode[self.symbol] # temp. variable that will be ultimately placed into the StaffString, s
+            str = Song.unicode[self.symbol] # temp. variable that will be ultimately placed into the StaffString, s
             fill = 1 # tracks how much of the StaffString's width has been filled. This is updated as sharps or dots are added to "str"
             if note.isSharp():
                 str += SHARP
@@ -434,8 +392,50 @@ This class represents a Song, that is an ordered list of Measures. Song objects 
 measures - a list of Measures
 gapsize - The Song's gap size is the number of "-" or " " between 2 notes. The extra text option specifies whether an input tab file whose data is to be loaded into this Song object contains extraneous text that are not string lines, timing lines, or whitespace.
 extraText - a list of character strings that hold extraneous text AND whitespace if the user has set the extra text config. option to True or JUST whitespace if the option is False. For a given index 'i', 'extraText[i]; holds the extra text that occurs after 'i' Measures of the Song.
+
+In addition, the class has some static variables:
+
+lengths - a dictionary that maps the symbols taken from the input file (the same as the kind stored in the object attribute symbol) to decimal values that represent
+lengths of time.
+unicode - a dictionary that maps the same set of symbols that are keys in lengths to unicode values that hold their representations to be displayed on the staff
+output. Unicode values taken from https://unicode.org/charts/PDF/U1D100.pdf.
+NO_TIMING_SYMBOL - key in unicode mapping that points to the unicode character to be placed on sheet music when timing for a Slice is not specified
+tieSymbol - character to be placed before a timing symbol that denotes the Slice with that timing is tied to the prior Slice
+dotSymbol - character to be placed (can be more than once) after a timing symbol that denotes a Slice's timing is dotted
 """
 class Song:
+    lengths = dict()
+    unicode = dict()
+    NO_TIMING_SYMBOL = "no symbol"
+    tieSymbol = ""
+    dotSymbol = ""
+
+    """
+    Static method used to load the 2 dictionaries from a set of lists. If the symbol list is None, then the dictionaries are loaded with default values.
+
+    params:
+    ids - list of symbols that appear in input file
+    times - times corresponding to each symbol
+    unicode - unicode values corresponding to each symbol
+    """
+    def loadMaps(ids=None, times=None, unicode=None):
+        if ids is None:
+            Song.lengths["W"] = 1
+            Song.unicode["W"] = "\U0001D15D"
+            Song.lengths["H"] = 0.5
+            Song.unicode["H"] = "\U0001D15E"
+            Song.lengths["Q"] = 0.25
+            Song.unicode["Q"] = "\U0001D15F"
+            Song.lengths["E"] = 0.125
+            Song.unicode["E"] = "\U0001D160"
+            Song.lengths["S"] = 0.0625
+            Song.unicode["S"] = "\U0001D161"
+        else:
+            for i in range(0, len(ids)):
+                Song.lengths[ids[i]] = times[i]
+                Song.unicode[ids[i]] = unicode[i]
+        Song.unicode[Song.NO_TIMING_SYMBOL] = "\u2022"
+
 
     """
     Constructs an empty Song object given a gap size and extra text setting (see class doc.).

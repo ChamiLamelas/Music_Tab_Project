@@ -30,27 +30,90 @@ Each of the Python source files in the repository is necessary for the program t
 
 You can download the configuration file if you wish, if you run the program it will automatically generate one if it doesn't locate one on your computer.  
 
-Make sure that *every* file you download is put in the *same* folder.
+Make sure that *every* file you download is put in the *same* folder. Therefore, it may be suitable to download the entire repository as a ZIP file. To do this click the green button "Clone or download" and select "Download ZIP" from the dropdown menu.
 
-### Preparing an Input Tab File
+## Preparing an Input Tab File
 
-The input tab files follow the general format of tabs found on [Ultimate Guitar Tabs](https://www.ultimate-guitar.com/). Here are some rules on how you should be structuring your input files:
+The input tab files follow the general format of tabs found on [Ultimate Guitar Tabs](https://www.ultimate-guitar.com/). The following subsections discuss some rules regarding how you should structure your input files. However, not every possible problem with an input tab file is addressed below. The error reporting system outlined in the exceptions library is meant to assist in helping you prepare a correct input tab file.
 
-**(1)** Lines that are meant to be strings must satisfy the following 5 properties.
+### Creating String Lines
 
-*(i)* Any whitespace must be at either the front or rear of the line, **none** in between measures or notes.  
-*(ii)* The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|".  
-*(iii)* Following either case of *(ii)*, a sequence of *ONLY* the following characters:  
+String lines are lines of the input tab file that represent strings of the bass. This program offers the ability to read 2 types of string lines. Ones that are "simple" and ones that are not. I will provide a description of these 2 types followed by examples of both.
+
+Lines that are "simple" string lines satisfy the following 4 properties:
+
+**(1)** The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"
+**(2)** Following the first non-whitespace character, a sequence of only the following characters:
 
 * vertical bar: "|"
 * hyphen: "-"
 * digits (0-9)
 * any characters in the playing legend, see [Creating a Playing Legend](#creating-a-playing-legend)
 
-*(iv)* The last non-whitespace character must be a "|".  
-*(v)* Be at least 4 characters long, not counting the whitespace at either end.
+*Note: whitespace is not allowed!*
 
-**(2)** Lines that are meant to list the timings of notes that are played must be made up of *ONLY* the following characters and must contain at least **1** non-whitespace character.
+**(3)** The last non-whitespace character must be a "|"
+**(4)** Be at least 3 characters long, not counting the whitespace at either end.
+
+Lines that are not "simple" contain string data as represented by properties **1-4** above but with extraneous non-whitespace text on either end of it. This is different from extra text lines in input tab files which are discussed in the later section [Handling "EXtra" Text](#handing-"extra"-text) Now, for some examples:
+
+**Example:** Here is a simple string line. Note that it starts with "G" followed by a "|" (the 1st case of property **1**).
+
+```
+G|---0---1---3|
+```
+
+**Example:** Here is a simple string line. Note that it starts with a "|" (the 2nd case of property **1**). This example could appear in a tab file where the strings are only identified earlier on in the file.
+
+```
+|0--1--2|
+```
+
+**Example:** Here is a simple string line. Note that it has some whitespace at the front. This is allowed.
+
+```
+                G|1--2|
+```
+
+**Example:** Here is a string line that is not simple. Note that there is extra text present at the front.
+
+```
+This is for the first verse     G|1---3--2|
+```
+
+**Example:** Here is a string line that is not simple. Note that there is extra text present at the front and back.
+
+```
+This is for the first verse     G|1---3--2|     Let the last note ring.
+```
+
+**Example:** Here is a line that is neither type of string line. While it may appear to be a non-simple string line because it has extra text, the string data that matches properties **1-4** cannot be broken up by either whitespace or non-whitespace!
+
+```
+This is for the first verse     G|1--3--2 Let this note ring 3--|
+```
+
+By default, string lines are assumed to be simple. If you have a file that has non-simple string lines please change this line in the configuration file from:
+
+```
+SIMPLE_STRING_LINES=true
+```
+
+to the following:
+
+```
+SIMPLE_STRING_LINES=false
+```
+
+More on the configuration file is discussed below in the section [Using the Configuration File](#using-the-configuration-file).
+
+**Note:** There will be a performance decrease if the file has non-simple string lines because the program must locate the ends (the bar lines) of the segment of string data.
+
+### Creating Timing Lines
+
+There are 3 primary things to consider when creating timing lines.
+
+**(1)** Lines that are meant to list the timings of notes that are played must be made up of *ONLY* the following characters and must contain at least **1** non-whitespace character.
 
 * newline/carriage return: "\n" (at the end)
 * tab: "\t"
@@ -62,12 +125,12 @@ The input tab files follow the general format of tabs found on [Ultimate Guitar 
 These lines should *only* be present if the timing is supplied in the tab, which is usually not the case. Make sure that if the timing is supplied, the 1st configuration line in the configuration file (not counting empty lines or comments) should be
 
 ```
-timingsupplied=true
+TIMING_SUPPLIED=true
 ```
 
-More on the configuration file is discussed below in the subsection [Using the Configuration File](#using-the-configuration-file).
+By default, this setting is false. More on the configuration file is discussed below in the section [Using the Configuration File](#using-the-configuration-file).
 
-**(3)** The timing letter ID that signifies the length of a note is assumed to be located above the first digit of the fret that the note corresponds to. For example, if note on the E-string 10th fret (D) is meant to be a quarter note, the portion of the input tab that corresponds to this should appear as so:
+**(2)** The timing letter ID that signifies the length of a note is assumed to be located above the first digit of the fret that the note corresponds to. For example, if note on the E-string 10th fret (D) is meant to be a quarter note, the portion of the input tab that corresponds to this should appear as so:
 
 ```
    Q
@@ -87,7 +150,7 @@ A|----|
 E|-10-|
 ```
 
-**(4)** 2 notes should not overlap in such a way their fret numbers are not fully on top of each other. For example, the following would be a violation because 10 and 11 overlap. the note on the D-string would not be read properly
+**(3)** 2 notes should not overlap in such a way their fret numbers are not fully on top of each other. For example, the following would be a violation because 10 and 11 overlap. the note on the D-string would not be read properly
 
 ```
      QQ
@@ -107,8 +170,6 @@ A|-10-|
 E|-8--|
 ```
 
-**Warning:** Not every possible problem with an input tab file is listed above. The error reporting system outlined in the exceptions library is meant to assist in helping prepare a correct input tab file.
-
 ## Using the Configuration File
 
 I have added this section before running the program because it is essential to understand how the configuration file works (and how you may need to change it) before trying to run the program.
@@ -126,7 +187,7 @@ The following sections discuss several changes you may have to make to your conf
 It is quite possible for the lines that contain the timing identifiers to contain tab characters ("\t"), especially if the user has decided to spread out the notes in the string lines. Due to the way that the program parses the input and assigns notes their length of time, the tab character causes problems. To solve this issue, the program will replace all tabs found in the timing lines with the number of spaces that correspond to a tab. By default, this is 8 spaces. However, in some text editors the number of spaces in a tab can be changed. Therefore, in the configuration file, a setting was added to specify how many spaces a tab should be replaced with. It is by default, set to 8:
 
 ```
-tabspacing=8
+TAB_SPACING=8
 ```
 
 Thus, before running the program, please check the number of spaces that are in a tab character for your text editor. For Windows users, Notepad follows the default and assigns each tab character to be equal to 8 spaces. Thus, you do not have to do anything in this case.
@@ -136,7 +197,7 @@ Thus, before running the program, please check the number of spaces that are in 
 If the input file you have created includes extraneous text such as the song name at the top, a legend at the bottom, number of verses, etc., the program will still be able to parse the file for string lines and timing lines (assuming those were input correctly). However, there is a performance set-back and if you have found a tab file with no extra text or you wish to edit it so it has none, then change the configuration option "hasextra" in tabReader.config from "true" to "false", as so:
 
 ```
-hasextra=false
+HAS_EXTRA=true
 ```
 
 This will provide a slight performance upgrade to the program, but can be ignored if you wish.
@@ -145,7 +206,8 @@ This will provide a slight performance upgrade to the program, but can be ignore
 
 * This should only be done if there is no extra text in the input tab file, otherwise errors could occur in file reading.
 * Lines that are made up entirely of whitespace do not count as "extra" text.
-* There cannot be extra text at the end of lines that are meant to be interpreted as string or timing lines.
+* To see the discussion of extra text at the end of string lines, go to [Creating String Lines](#creating-string-lines).
+* There *cannot* be extra text in timing lines.
 
 ### Creating a Playing Legend
 
@@ -162,7 +224,7 @@ b - bend
 For this program, you do not have to provide what each letter means, but it does need to know which characters will appear in string lines as mentioned above. The way that you can specify this is through the configuration file. By default the "legend" option is blank. However, if I wanted to tell the program that I am passing in an input file with string lines that contain the characters in the above legend, I would change the "legend" line of the configuration file like so:
 
 ```
-legend=hpb
+PLAYING_LEGEND=hpb
 ```
 
 *Observe:* I do not specify what h, p, and b mean, just that they will appear. Lastly, **note**, digits (0-9) and whitespace are not allowed to be in the legend.  

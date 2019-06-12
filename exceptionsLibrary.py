@@ -44,9 +44,9 @@ class TabIOException(TabException):
         super().__init__("I/O Error with \"{0}\". Reason: {1}.".format(issue, reason))
 
 class TabConfigurationException(TabException):
-    # first line in the file is line 1.
+    # first line in the file is line 1. Line=0 means source of problem couldn't be identified.
     def __init__(self, reason="not specified", line=0):
-        super().__init__("Program configuration failed. Error on line {0}. Reason: {1}. If you cannot solve the problem, please replace the configuration file with the default version. See the README at {2}.".format(line, reason, README_LINK))
+        super().__init__("Program configuration failed. Error on line {0}. Reason: {1}. To reset the config. file see the README at {2}.".format(line, reason, README_LINK))
 
 class StaffException(TabException):
     def __init__(self, op, reason, str):
