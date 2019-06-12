@@ -11,13 +11,15 @@ from pathlib import Path
 from enum import Enum
 
 """
-Enum that
+Enum that represents a configuration option. That is, each option is related to a number that serves as both its id and line number in the config. file. The configuration options are limited to this numbered set and are discussed below.
 
-TIMING_SUPPLIED - line number and id of 'hasTiming' attribute in ConfigReader
-GAPSIZE - line number and id of 'gapsize' attribute in ConfigReader
-TAB_SPACING - line number and id of 'tabSpacing' attribute in ConfigReader
-HAS_EXTRA - line number and id of 'hasExtra' attribute in ConfigReader
-PLAYING_LEGEND - line number and id of 'playingLegend' attribute in ConfigReader
+TIMING_SUPPLIED - line number and id of the option that signifes timing is supplied (that is there is a line above the strings with W's, H's, Q's. etc.)
+GAPSIZE - line number and id of the option that signfies the output's sheet music gapsize (see Song doc. in typeLibrary.py)
+TAB_SPACING - line number and id of the option that signifies the number of spaces in a tab in the user's text editor
+HAS_EXTRA - line number and id of the option that signifies whether extra text exists in the file
+PLAYING_LEGEND - line number and id of the option that holds a legend of other characters that may appear in string lines (e.g. h for hammer-ons, p for pull-offs, b for bends, etc.)
+TIE_SYMBOL - line number and id of the option that signifies the character that represents a tie symbol. That is the character that appears before timing symbols (W, H, Q, etc.) that signifies a given Slice is tied to a previous Slice
+DOT_SYMBOL - line number and id of the option that signifies the character that represents a dot. There can be multiple of these following a timing symbol that provide the length of time of the Slice the timing symbol corresponds to
 """
 class ConfigOptionID(Enum):
       TIMING_SUPPLIED = 0
@@ -32,16 +34,16 @@ class ConfigOptionID(Enum):
 This class is used to read the configuration file to be used by tabReader.py. The class stores the config. options' settings as attributes in addition to the list of lines read from the input config. file:
 
 lines - a list of Strings that holds non-empty lines of the configuration file stripped of whitespace
-hasTiming - the option that signifes timing is supplied (that is there is a line above the strings with W's, H's, Q's. etc.)
-gapsize - the option that signfies the output's sheet music gapsize (see Song doc. in typeLibrary.py)
-tabSpacing - the option that signifies the number of spaces in a tab in the user's text editor
-hasExtra - the option that signifies whether extra text exists in the file
-playingLegend - the option that holds a legend of other characters that may appear in string lines (e.g. h for hammer-ons, p for pull-offs, b for bends, etc.)
+settings - a list of the settings for each of the options specified in the above enum
+hasTiming -
+gapsize -
+tabSpacing -
+hasExtra -
+playingLegend -
 
-WARNING: It is not advised to access the attributes/instance fields regarding the config. options directly. This is because there is no guarantee that they have actually been read by the reading methods
-discussed below. Therefore, it is best to use the their respective accessor/getter methods listed at the end of the class. These will check that they have actually been read and provide more appropriate
-output. To avoid repeatedly doing the checks in client code that doesn't change the configuration, store the output of the getter methods in temp./local variables. If you wish to access the instance fields
-directly, it is advised to use the read-check (exist) methods before. These are listed alongside the accessor/getter methods at the end of the class.
+WARNING: It is not advised to access the 'settings' attributedirectly. This is because there is no guarantee that they have actually been read by the reading methods and may return unexpected data values.
+Therefore, it is best to use the their respective accessor/getter methods listed at the end of the class. These will check that they have actually been read and provide more appropriate output.
+NOTE: calling these multiple times in client code that doesn't change the config. decreases performance as repeated unneccessary checks are being performed. To solve this, store the output of the getter methods that perform these checks in temp./local variables.
 
 In addition, the class has several static variables used in identifying components of the configuration file:
 
@@ -64,13 +66,9 @@ class ConfigReader:
     """
     def __init__(self):
         self.lines = list()
-        self.hasTiming = -1
-        self.gapsize = -1
-        self.tabSpacing = -1
-        self.hasExtra = -1
-        self.playingLegend = None
-        self.tieSymbol = ""
-        self.dotSymbol = ""
+        self.settings = list() # initialize empty settings list to correspond to size specified by ConfigOptionID
+        for i in range(0, len(ConfigOptionID)):
+            self.settings.append(None)
 
     """
     Returns True if the OS can find a path to the config file, False if not.
@@ -133,7 +131,7 @@ class ConfigReader:
         self.readDotSymbol()
 
     """
-    Reads the setting for an option specified by the user in the config file.
+    Returns the setting for an option specified by the user in the config file.
 
     params:
     option - a ConfigOptionID that identifies the config. option
@@ -143,12 +141,12 @@ class ConfigReader:
     def readSetting(self, option: ConfigOptionID):
         self.checkConfigFileLoaded()
         if option.value >= len(self.lines):
-            raise TabConfigurationException(reason="config. file too small")
+            raise TabConfigurationException(reason="config. file too small. Config. option \"{0}\" cannot be found because its id ({1}) is greater than the number of lines in the file ({2}).".format(option.name, option.value, len(lines)))
         if not self.lines[option.value].startswith(option.name): # option's setting line must start with option's id
-            raise TabConfigurationException(reason="improper ID. Must be {0}.".format(option.name), line=option.value)
+            raise TabConfigurationException(reason="improper ID. Must be {0}.".format(option.name), line=option.value+1)
         idx = self.lines[option.value].find("=")
         if idx != len(option.name): # option id and setting must be separated by an "="
-            raise TabConfigurationException(reason="missing \"=\".", line=option.value)
+            raise TabConfigurationException(reason="missing \"=\".", line=option.value+1)
         return self.lines[option.value][idx+1:] # setting is whatever follows the "="
 
     """
@@ -160,9 +158,9 @@ class ConfigReader:
     def readTiming(self):
         setting = self.readSetting(ConfigOptionID.TIMING_SUPPLIED)
         if setting == ConfigReader.SETTING_YES:
-            self.hasTiming = 1
+            self.settings[ConfigOptionID.TIMING_SUPPLIED.value] = 1
         elif setting == ConfigReader.SETTING_NO:
-            self.hasTiming = 0
+            self.settings[ConfigOptionID.TIMING_SUPPLIED.value] = 0
         else: # only 2 allowed settings are True or False
             raise TabConfigurationException(reason="setting {0} not recognized. Must be {1} or {2}".format(setting, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO), line=ConfigOption.TIMING_SUPPLIED.value+1)
 
@@ -174,15 +172,14 @@ class ConfigReader:
     def readGapsize(self):
         setting = self.readSetting(ConfigOptionID.GAPSIZE)
         try:
-            nSetting = int(setting)
-            if nSetting < 0:
+            intSetting = int(setting)
+            if intSetting < 0:
                 raise ValueError()
         # 2 sources of ValueErrors in try-statement: (1) setting is not an int, raised by int(). (2) ValueError manually raised by gapSize < 0. One is manually raised because both
         # possible problems with the gapSize both fall under a "value" problem. These can be easily grouped into the same error message.
         except ValueError:
             raise TabConfigurationException(reason="setting \"{0}\" not recognized. Must be a non-negative integer.".format(setting), line=ConfigOption.GAPSIZE.value+1)
-        else:
-            self.gapsize = nSetting
+        self.settings[ConfigOptionID.GAPSIZE.value] = intSetting
 
     """
     Reads the integer tab spacing of the editor used to create the input text file. By default the spacing is 8, but modern text editors allow for the number of spaces in a tab character to be reduced.
@@ -193,13 +190,13 @@ class ConfigReader:
     def readTabSpacing(self):
         setting = self.readSetting(ConfigOptionID.TAB_SPACING)
         try:
-            nSetting = int(setting)
-            if nSetting < 0:
+            intSetting = int(setting)
+            if intSetting < 0:
                 raise ValueError()
         except ValueError: # see note on ValueError handling in getGapsize() above
             raise TabConfigurationException(reason="setting \"{0}\" not recognized. Must be a non-negative integer.".format(setting), line=ConfigOptionID.TAB_SPACING.value+1)
         else:
-            self.tabSpacing = nSetting
+            self.settings[ConfigOptionID.TAB_SPACING.value] = intSetting
 
     """
     Reads True/False value of whether user has specified that the input text file has extra text. That is, notes or identifications of verses, etc. If the user removes all extra text that is all
@@ -210,9 +207,9 @@ class ConfigReader:
     def readHasExtra(self):
         setting = self.readSetting(ConfigOptionID.HAS_EXTRA)
         if setting == ConfigReader.SETTING_YES:
-            self.hasExtra = 1
+            self.settings[ConfigOptionID.HAS_EXTRA.value] = 1
         elif setting == ConfigReader.SETTING_NO:
-            self.hasExtra = 0
+            self.settings[ConfigOptionID.HAS_EXTRA.value] = 0
         else: # only 2 allowed settings are True or False
             raise TabConfigurationException(reason="setting \"{0}\" not recognized. Must be {1} or {2}".format(setting, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO), line=ConfigOptionID.HAS_EXTRA.value+1)
 
@@ -229,7 +226,7 @@ class ConfigReader:
                 raise TabConfigurationException(reason="illegal legend value \"{0}\". Cannot be a whitespace character or digit (0-9)".format(ch), line=ConfigOptionID.PLAYING_LEGEND.value+1)
             else:
                 leg.add(ch)
-        self.playingLegend = leg
+        self.settings[ConfigOptionID.PLAYING_LEGEND.value] = leg
 
     """
     Reads the tie symbol config. option.
@@ -240,7 +237,7 @@ class ConfigReader:
         setting = self.readSetting(ConfigOptionID.TIE_SYMBOL)
         if len(setting) != 1:
             raise TabConfigurationException(reason="setting \"{0}\" not recognized. Must be a single character.".format(setting), line=ConfigOptionID.TIE_SYMBOL.value+1)
-        self.tieSymbol = setting
+        self.settings[ConfigOptionID.TIE_SYMBOL.value] = setting
 
     """
     Reads the dot symbol config. option.
@@ -251,7 +248,7 @@ class ConfigReader:
         setting = self.readSetting(ConfigOptionID.DOT_SYMBOL)
         if len(setting) != 1:
             raise TabConfigurationException(reason="setting \"{0}\" not recognized. Must be a single character.".format(setting), line=ConfigOptionID.DOT_SYMBOL.value+1)
-        self.dotSymbol = setting
+        self.settings[ConfigOptionID.DOT_SYMBOL.value] = setting
 
     """
     Builds the default config file. WARNING: calling this method will overwrite any pre-existing file with the same path as this program's config file.
@@ -266,127 +263,79 @@ class ConfigReader:
             raise TabConfigurationException(reason="configuration file could not be created; an I/O Error occurred: " + str(i))
 
     """
-    Reports that an option reading has failed by raising a TabConfigurationException.
+    Checks if the reading operation for a given option was successful based on its current setting.
 
     params:
-    option - the ConfigOption for which the reading failed
+    option - a ConfigOptionID that identifies an option to check
 
     Raises TabConfigurationException as explained above.
     """
-    def reportOptionReadFailure(option: ConfigOptionID):
-        raise TabConfigurationException(reason="configuration option \"{0}\" has not been read. Please use 'readAllOptions()' or another reading method.".format(option.name), line=option)
+    def checkIfOptionRead(self, id: ConfigOptionID):
+        if self.settings[id.value] is None:
+            raise TabConfigurationException(reason="configuration option \"{0}\" has not been read. Please use 'readAllOptions()' or another reading method.".format(id.name), line=id.value+1)
 
     """
-    Returns whether or not a timing setting was read successfully.
-    """
-    def timingExists(self):
-        return self.hasTiming != -1
+    Checks that the timing supplied option has been read before returning its value to the user. Use instead of directly accessing 'self.settings' for more suitable output.
 
-    """
-    Checks that the timing supplied option has been read before returning its value to the user. Use instead of directly accessing 'self.hasTiming' for more suitable output.
-
-    Raises TabConfigurationException if 'timingExists()' returns False
+    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
     """
     def isTimingSupplied(self):
-        if not self.timingExists():
-            ConfigReader.reportOptionReadFailure(ConfigOptionID.TIMING_SUPPLIED)
-        return self.hasTiming == 1
+        self.checkIfOptionRead(ConfigOptionID.TIMING_SUPPLIED)
+        return self.settings[ConfigOptionID.TIMING_SUPPLIED.value] == 1
 
     """
-    Returns whether or not a gapsize setting was read successfully.
-    """
-    def gapsizeExists(self):
-        return self.gapsize != -1
+    Checks that the gapsize option has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
 
-    """
-    Checks that the gapsize option has been read before returning its value to the user. Use instead of directly accessing 'self.gapsize'.
-
-    Raises TabConfigurationException if 'gapsizeExists()' returns False
+    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
     """
     def getGapsize(self):
-        if not self.gapsizeExists():
-            ConfigReader.reportOptionReadFailure(ConfigOptionID.GAPSIZE)
-        return self.gapsize
+        self.checkIfOptionRead(ConfigOptionID.GAPSIZE)
+        return self.settings[ConfigOptionID.GAPSIZE.value]
 
     """
-    Returns whether or not a tab spacing setting was read successfully.
-    """
-    def tabSpacingExists(self):
-        return self.tabSpacing != -1
+    Checks that the tab spacing option has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
 
-    """
-    Checks that the tab spacing option has been read before returning its value to the user. Use instead of directly accessing 'self.tabSpacing'.
-
-    Raises TabConfigurationException if 'tabSpacingExists()' returns False
+    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
     """
     def getTabSpacing(self):
-        if not self.tabSpacingExists():
-            ConfigReader.reportOptionReadFailure(ConfigOptionID.TAB_SPACING)
-        return self.tabSpacing
+        self.checkIfOptionRead(ConfigOptionID.TAB_SPACING)
+        return self.settings[ConfigOptionID.TAB_SPACING.value]
 
     """
-    Returns whether or not an extra text setting was read successfully.
-    """
-    def extraTextExists(self):
-        return self.hasExtra != -1
+    Checks that the extra text present option has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
 
-    """
-    Checks that the extra text present option has been read before returning its value to the user. Use instead of directly accessing 'self.hasExtra'.
-
-    Raises TabConfigurationException if 'extraTextExists()' returns False
+    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
     """
     def isExtraTextPresent(self):
-        if not self.extraTextExists():
-            ConfigReader.reportOptionReadFailure(ConfigOptionID.HAS_EXTRA)
-        return self.hasExtra == 1
+        self.checkIfOptionRead(ConfigOptionID.HAS_EXTRA)
+        return self.settings[ConfigOptionID.HAS_EXTRA.value] == 1
 
     """
-    Returns whether or not a playing legend was read successfully.
-    """
-    def playingLegendExists(self):
-        return self.playingLegend != None
+    Checks that the playing legend has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
 
-    """
-    Checks that the playing legend has been read before returning its value to the user. Use instead of directly accessing 'self.playingLegend'.
-
-    Raises TabConfigurationException if 'playingLegendExists()' returns False
+    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
     """
     def getPlayingLegend(self):
-        if not self.playingLegendExists():
-            ConfigReader.reportOptionReadFailure(ConfigOptionID.PLAYING_LEGEND)
-        return self.playingLegend
+        self.checkIfOptionRead(ConfigOptionID.PLAYING_LEGEND)
+        return self.settings[ConfigOptionID.PLAYING_LEGEND.value]
 
     """
-    Returns whether or not a tie symbol option was read successfully.
-    """
-    def tieSymbolExists(self):
-        return self.tieSymbol != ""
+    Checks that the tie symbol option has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
 
-    """
-    Checks that the tie symbol option has been read before returning its value to the user. Use instead of directly accessing 'self.tieSymbol'.
-
-    Raises TabConfigurationException if 'tieSymbolExists()' returns False
+    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
     """
     def getTieSymbol(self):
-        if not self.tieSymbolExists():
-            ConfigReader.reportOptionReadFailure(ConfigOptionID.TIE_SYMBOL)
-        return self.tieSymbol
+        self.checkIfOptionRead(ConfigOptionID.TIE_SYMBOL)
+        return self.settings[ConfigOptionID.TIE_SYMBOL.value]
 
     """
-    Returns whether or not a dot symbol option was read successfully.
-    """
-    def dotSymbolExists(self):
-        return self.dotSymbol != ""
+    Checks that the dot symbol option has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
 
-    """
-    Checks that the dot symbol option has been read before returning its value to the user. Use instead of directly accessing 'self.dotSymbol'.
-
-    Raises TabConfigurationException if 'dotSymbolExists()' returns False
+    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
     """
     def getDotSymbol(self):
-        if not self.dotSymbolExists():
-            ConfigReader.reportOptionReadFailure(ConfigOptionID.DOT_SYMBOL)
-        return self.dotSymbol
+        self.checkIfOptionRead(ConfigOptionID.DOT_SYMBOL)
+        return self.settings[ConfigOptionID.DOT_SYMBOL.value]
 
 """
 Script to load default config. file text ('ConfigReader.defaultConfig')

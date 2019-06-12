@@ -149,7 +149,7 @@ This will provide a slight performance upgrade to the program, but can be ignore
 
 ### Creating a Playing Legend
 
-It is common for tabs to provide specifications within the string lines of how to play notes (to bend, hammer-on, pull-off, etc.) using a legend. In the tab-reading program, string lines need to have a specific definition in order to be identified by the program as explained in the section above [Preparing an Input Tab File](###preparing-an-input-tab-file). The legend configuration option as explained in the example below can be used to allow other characters to occur in string lines besides the ones listed explicitly in rule no. 1 in *Preparing an Input Tab File*.
+It is common for tabs to provide specifications within the string lines of how to play notes (to bend, hammer-on, pull-off, etc.) using a legend. In the tab-reading program, string lines need to have a specific definition in order to be identified by the program as explained in the section above [Preparing an Input Tab File](#preparing-an-input-tab-file). The legend configuration option as explained in the example below can be used to allow other characters to occur in string lines besides the ones listed explicitly in rule no. 1 in *Preparing an Input Tab File*.
 
 **Example:** Suppose I have a tab with the following legend.
 
