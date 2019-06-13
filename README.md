@@ -13,7 +13,7 @@ This section will inform you of the necessary prerequisites to run this program,
 * [An ASCII Table](http://www.asciitable.com/)
 * For a discussion of text editors, and which one you may have on your computer refer to the subsection "Types of text editors" in the Wikipedia article on text files.
 
-Furthermore, the sheet music output is an HTML file that is encoded in UTF-8. To read more about Unicode and character encodings, visit the [Wikipedia Article on Unicode](https://en.wikipedia.org/wiki/Unicode).
+Furthermore, the sheet music output is an HTML file that is encoded in the UTF-8 character encodings. To read more about Unicode and character encodings, visit the [Wikipedia Article on Unicode](https://en.wikipedia.org/wiki/Unicode).
 
 **Note:** the installation and running of this program has been tested *only* on Windows 10 using Python 3.7.2 and Python 3.7.3. Other versions of Python 3 have not been tested, but should be compatible. However, Python 2 is **NOT** compatible.
 
@@ -57,7 +57,7 @@ Lines that are "simple" string lines satisfy the following 4 properties:
 **(3)** The last non-whitespace character must be a "|"
 **(4)** Be at least 3 characters long, not counting the whitespace at either end.
 
-Lines that are not "simple" contain string data as represented by properties **1-4** above but with extraneous non-whitespace text on either end of it. This is different from extra text lines in input tab files which are discussed in the later section [Handling Extra Text](#handing-extra-text) Now, for some examples:
+Lines that are not "simple" contain string data as represented by properties **1-4** above but with extraneous non-whitespace text on either end of it. This is different from extra text lines in input tab files which are discussed in the later section [Handling Extra Text](#handling-extra-text) Now, for some examples:
 
 **Example:** Here is a simple string line. Note that it starts with "G" followed by a "|" (the 1st case of property **1**).
 
@@ -258,19 +258,29 @@ Here it can be seen that the tie symbol is 1st, then the dot symbol, followed by
 
 ## Running the Program
 
-Once you have installed the required files and have a tab file, say located at "C:\\Users\\Chami\\Desktop\\test_tab.txt", open your operating system's command line. Make sure you have retrieved your input file's **full** path unless the input file also resides in the same directory as the Python source files.
+Once you have installed the required files and have a tab file, run the program using the following instructions:
 
-First, navigate to the directory where you have installed the Python source files. This is because the command below assumes "tabReader.py" is in the current working directory.
-
-Now, run the following command:
+* Open your operating system's command line.
+* Navigate to the directory to where you have downloaded the source files. This is because the commands below assume "tabReader.py" is in the current working directory. This can be done using the "change directory" command as explained in the [Wikipedia Article on this Command](https://en.wikipedia.org/wiki/Cd_(command)).
+* If your input file is in the *same* directory as the source files, run the following command:
 
 ```
-py tabReader.py C:\\Users\\Chami\\Desktop\\test_tab.txt
+py tabReader.py <input file name including extension>
 ```
 
-After you run the program, an output HTML file encoded in *UTF-8* will be generated, in this case it will have the path "C:\\Users\\Chami\\Desktop\\test_tab_staff.html". To view this file, open it using a browser than can display the Unicode characters that are included such as [Mozilla Firefox 67.0 (64-bit)](https://www.mozilla.org/en-US/firefox/new/) or [Google Chrome Version 74.0.3729.169 (Official Build) (64-bit)](https://www.google.com/chrome/).
+* If your input file is in a different directory, retrieve your input file's **full** path. Consider the following example for Windows:
 
-**Note:** If you run the same command again, the contents of this file will be overwritten, so if you wish to save the first output, I would rename the file or move it to another directory.
+**Example:** Say my input tab file is located at "C:\\Users\\Chami\\Desktop\\test.txt". Then, I would run this command:
+
+```
+py tabReader.py C:\Users\Chami\Desktop\test.txt
+```
+
+**Note:** file path formatting differs per operating system, as shown in the [Wikipedia Article on Paths](https://en.wikipedia.org/wiki/Path_(computing)#Representations_of_paths_by_operating_system_and_shell).
+
+After you run the program, an output HTML file encoded in the *UTF-8* character encoding will be generated, in this case it will have the path "C:\\Users\\Chami\\Desktop\\test_staff.html". To view this file, open it using a browser that can display Unicode characters in this encoding. For example: [Mozilla Firefox 67.0 (64-bit)](https://www.mozilla.org/en-US/firefox/new/) or [Google Chrome Version 74.0.3729.169 (Official Build) (64-bit)](https://www.google.com/chrome/).
+
+**Note:** If you run the same command again, the contents of the HTML file will be overwritten. So, if you wish to save the first output, I would rename the file or move it to another directory.
 
 ### Understanding The Log File
 
@@ -280,7 +290,7 @@ Suppose the program executes on a test file successfully and the log file report
 
 ```
 1) [2019-06-10 15:39:56.224618][> Log >] New Log Session started.
-2) [2019-06-10 15:39:56.224618][Info] Successfully located input file "C:\Users\Chami\Desktop\test.txt" in program args. Beginning tab-reading program configuration...
+2) [2019-06-10 15:39:56.224618][Info] Successfully located input file "C:\Users\Chami\Desktop\test.txt" in program arguments. Beginning tab-reading program configuration...
 3) [2019-06-10 15:39:56.224618][Info] Configuration file was found.
 4) [2019-06-10 15:39:56.224618][Info] Configuration file was loaded and its contents were read successfully. Beginning tab-reading...
 5) [2019-06-10 15:39:56.224618][Info] Input tab file "C:\Users\Chami\Desktop\test.txt" was opened and closed successfully.
