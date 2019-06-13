@@ -18,9 +18,8 @@ GAPSIZE - line number and id of the option that signfies the output's sheet musi
 TAB_SPACING - line number and id of the option that signifies the number of spaces in a tab in the user's text editor
 HAS_EXTRA - line number and id of the option that signifies whether extra text exists in the file
 PLAYING_LEGEND - line number and id of the option that holds a legend of other characters that may appear in string lines (e.g. h for hammer-ons, p for pull-offs, b for bends, etc.)
-TIE_SYMBOL - line number and id of the option that signifies the character that represents a tie symbol. That is the character that appears before timing symbols (W, H, Q, etc.) that signifies a given Slice is tied to a previous Slice
-DOT_SYMBOL - line number and id of the option that signifies the character that represents a dot. There can be multiple of these following a timing symbol that provide the length of time of the Slice the timing symbol corresponds to
 SIMPLE_STRING_LINES - line number and id of the option that signifies whether the string lines in the tab file are "simple". That is, lines with string information contain ONLY string information: no extra text on either end of the string data.
+TIMING_SYMBOLS -
 """
 class ConfigOptionID(Enum):
       TIMING_SUPPLIED = 0
@@ -28,9 +27,8 @@ class ConfigOptionID(Enum):
       TAB_SPACING = 2
       HAS_EXTRA = 3
       PLAYING_LEGEND = 4
-      TIE_SYMBOL = 5
-      DOT_SYMBOL = 6
-      SIMPLE_STRING_LINES = 7
+      SIMPLE_STRING_LINES = 5
+      TIMING_SYMBOLS = 6
 
 """
 This class is used to read the configuration file to be used by tabReader.py. The class stores the config. options' settings as attributes in addition to the list of lines read from the input config. file:
@@ -59,7 +57,7 @@ class ConfigReader:
     defaultConfig = ""
 
     """
-    Constructs an empty ConfigReader. Use readConfigFile() to load the configuration file into this object.
+    Constructs an empty ConfigReader. Use 'open()' to load the configuration file into this object.
     """
     def __init__(self):
         self.lines = list()
@@ -80,7 +78,7 @@ class ConfigReader:
     """
     def checkConfigFileLoaded(self):
         if not self.lines:
-            raise TabConfigurationException(reason="config file not loaded properly. Use readConfigFile() to try again or reset to the default config file by calling ConfigReader.buildDefaultConfigFile().")
+            raise TabConfigurationException(reason="config file not loaded properly. Can try opening again (use 'open()') or delete the file to reset it to default (uses 'buildDefaultConfigFile()').")
 
     """
     If the config file can be found, loads the files contents into self.lines. Otherwise, this method builds the configuration file and then re-runs the program.
@@ -94,7 +92,7 @@ class ConfigReader:
     def open(self):
         if ConfigReader.configFileFound():
             try: # since a config file has been found, try to read it. Ignore lines marked as comments or that are empty. Wrap any IOErrors as TabConfigurationExceptions.
-                with open(ConfigReader.CONFIG_FILENAME) as configFile:
+                with open(ConfigReader.CONFIG_FILENAME, "r") as configFile:
                     for line in configFile:
                         if not line.startswith(ConfigReader.COMMENT):
                             sLine = "".join(line.split()) # remove any separating whitespace
@@ -108,25 +106,12 @@ class ConfigReader:
                 return True
             except IOError as i:
                 raise TabConfigurationException(reason="I/O error opening config. file: " + i)
+            except UnicodeDecodeError:
+                raise TabConfigurationException(reason="Unicode character not allowed in text file. Mapping legend should have timing Unicode codes represented in the form outlined in the README")
         else: # since a config file could not be found, build the default one and call this method again.
             ConfigReader.buildDefaultConfigFile()
             self.open()
             return False
-
-    """
-    Reads all the options and loads them into the ConfigReader attributes.
-
-    Raises TabConfigurationException if any of the reading methods failed.
-    """
-    def readAllOptions(self):
-        self.readTiming()
-        self.readGapsize()
-        self.readTabSpacing()
-        self.readHasExtra()
-        self.readPlayingLegend()
-        self.readTieSymbol()
-        self.readDotSymbol()
-        self.readSimpleString()
 
     """
     Returns the setting for an option specified by the user in the config file.
@@ -227,28 +212,6 @@ class ConfigReader:
         self.settings[ConfigOptionID.PLAYING_LEGEND.value] = leg
 
     """
-    Reads the tie symbol config. option.
-
-    Raises TabConfigurationException if readSetting() fails or the tie symbol setting is not a single character.
-    """
-    def readTieSymbol(self):
-        setting = self.readSetting(ConfigOptionID.TIE_SYMBOL)
-        if len(setting) != 1:
-            raise TabConfigurationException(reason="setting \"{0}\" for option \"{1}\" not recognized. Must be a single character.".format(setting, ConfigOptionID.TIE_SYMBOL.name), line=ConfigOptionID.TIE_SYMBOL.value+1)
-        self.settings[ConfigOptionID.TIE_SYMBOL.value] = setting
-
-    """
-    Reads the dot symbol config. option.
-
-    Raises TabConfigurationException if readSetting() fails or the dot symbol setting is not a single character.
-    """
-    def readDotSymbol(self):
-        setting = self.readSetting(ConfigOptionID.DOT_SYMBOL)
-        if len(setting) != 1:
-            raise TabConfigurationException(reason="setting \"{0}\" for option \"{1}\" not recognized. Must be a single character.".format(setting, ConfigOptionID.DOT_SYMBOL.name), line=ConfigOptionID.DOT_SYMBOL.value+1)
-        self.settings[ConfigOptionID.DOT_SYMBOL.value] = setting
-
-    """
     Reads the simple string lines config. option.
 
     Raises TabConfigurationException if readSetting() fails or the setting is neither ConfigReader.SETTING_YES nor ConfigReader.SETTING_NO.
@@ -261,6 +224,17 @@ class ConfigReader:
             self.settings[ConfigOptionID.SIMPLE_STRING_LINES.value] = False
         else:
             raise TabConfigurationException(reason="setting \"{0}\" for option \"{1}\" not recognized. Must be {2} or {3}".format(setting, ConfigOptionID.SIMPLE_STRING_LINES.name, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO), line=ConfigOptionID.SIMPLE_STRING_LINES.value+1)
+
+    """
+    Reads the timing symbols list config. option.
+
+    Raises TabConfigurationException if readSetting() fails or the setting is invalid.
+    """
+    def readTimingSymbolsList(self):
+        setting = self.readSetting(ConfigOptionID.TIMING_SYMBOLS)
+        if len(setting) != 10 or len(set(setting)) < 10:
+            raise TabConfigurationException(reason="setting \"{0}\" for option \"{1}\" not recognized. Must be made up of exactly 10 unique characters", line=ConfigOptionID.TIMING_SYMBOLS.value+1)
+        self.settings[ConfigOptionID.TIMING_SYMBOLS.value] = setting
 
     """
     Builds the default config file. WARNING: calling this method will overwrite any pre-existing file with the same path as this program's config file.
@@ -284,7 +258,7 @@ class ConfigReader:
     """
     def checkIfOptionRead(self, id: ConfigOptionID):
         if self.settings[id.value] is None:
-            raise TabConfigurationException(reason="configuration option \"{0}\" has not been read. Please use 'readAllOptions()' or another reading method.".format(id.name), line=id.value+1)
+            raise TabConfigurationException(reason="configuration option \"{0}\" has not been read. Please use the appropriate reading method.".format(id.name), line=id.value+1)
 
     """
     Checks that the timing supplied option has been read before returning its value to the user. Use instead of directly accessing 'self.settings' for more suitable output.
@@ -340,24 +314,6 @@ class ConfigReader:
         return self.settings[ConfigOptionID.PLAYING_LEGEND.value]
 
     """
-    Checks that the tie symbol option has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
-
-    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
-    """
-    def getTieSymbol(self):
-        self.checkIfOptionRead(ConfigOptionID.TIE_SYMBOL)
-        return self.settings[ConfigOptionID.TIE_SYMBOL.value]
-
-    """
-    Checks that the dot symbol option has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
-
-    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
-    """
-    def getDotSymbol(self):
-        self.checkIfOptionRead(ConfigOptionID.DOT_SYMBOL)
-        return self.settings[ConfigOptionID.DOT_SYMBOL.value]
-
-    """
     Checks that (i) the simple string lines option has been read and that (ii) there is no conflict with the setting for 'ConfigOptionID.HAS_EXTRA' before returning its value to the user. Use instead of directly accessing 'self.settings'.
 
     Note: for (ii) to be checked, the setting for 'ConfigOptionID.HAS_EXTRA' must have also been read prior to calling this method.
@@ -374,6 +330,15 @@ class ConfigReader:
             raise TabConfigurationException(reason="conflicting config. settings: \"{1}={3}\" and \"{0}={3}\". If {0}={3}, then {1}={2}".format(ConfigOptionID.HAS_EXTRA.name, ConfigOptionID.SIMPLE_STRING_LINES.name, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO))
         return self.settings[ConfigOptionID.SIMPLE_STRING_LINES.value]
 
+    """
+    Checks that the timing symbol list has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
+
+    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option
+    """
+    def getTimingSymbolsList(self):
+        self.checkIfOptionRead(ConfigOptionID.TIMING_SYMBOLS)
+        return self.settings[ConfigOptionID.TIMING_SYMBOLS.value]
+
 """
 Script to load default config. file text ('ConfigReader.defaultConfig')
 """
@@ -387,9 +352,8 @@ defaultValues[ConfigOptionID.GAPSIZE.value] = 3
 defaultValues[ConfigOptionID.TAB_SPACING.value] = 8
 defaultValues[ConfigOptionID.HAS_EXTRA.value] = ConfigReader.SETTING_YES
 defaultValues[ConfigOptionID.PLAYING_LEGEND.value] = ""
-defaultValues[ConfigOptionID.TIE_SYMBOL.value] = "+"
-defaultValues[ConfigOptionID.DOT_SYMBOL.value] = "-"
 defaultValues[ConfigOptionID.SIMPLE_STRING_LINES.value] = ConfigReader.SETTING_YES
+defaultValues[ConfigOptionID.TIMING_SYMBOLS.value] = "+.WHQESTFO"
 
 # place it into the default file text static variable
 ConfigReader.defaultConfig = "# This is the configuration file for the tab reader program. \n# You can add line comments in the configuration file similarly to how it is done in Python: \n# (1) Placing a hashtag \"#\" at the beginning of each comment line. \n# (2) Placing a \"#\" at the end of configuration lines. The program will ignore any text following the hashtag."

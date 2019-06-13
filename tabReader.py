@@ -40,10 +40,18 @@ def run(logger):
         else:
             logger.log(msg="Configuration file was not found. Default configuration file was created and loaded instead.", type=Logger.WARNING)
 
-        rdr.readAllOptions() # read all the config options
-        Song.tieSymbol = rdr.getTieSymbol()
-        Song.dotSymbol = rdr.getDotSymbol()
-        Song.loadMaps()
+        rdr.readTiming()
+        rdr.readGapsize()
+        rdr.readTabSpacing()
+        rdr.readPlayingLegend()
+        rdr.readHasExtra()
+        rdr.readSimpleString()
+        timingSupplied = rdr.isTimingSupplied()
+
+        if timingSupplied:
+            rdr.readTimingSymbolsList()
+            Song.loadTimingDataFromSymbolList(rdr.getTimingSymbolsList())
+        # else: no point in reading these options, they aren't needed
 
         song = Song(rdr.getGapsize())
         loadedLines = [0, 0]
@@ -69,7 +77,7 @@ def run(logger):
         else:
             logType = Logger.WARNING
             logStr += "No lines were interpreted as string lines"
-        if rdr.isTimingSupplied():
+        if timingSupplied:
             logStr += " and timing lines"
         logger.log(type=logType, msg=logStr + ". {0} Measure objects were created.".format(song.numMeasures()))
 

@@ -9,7 +9,8 @@ date: Summer 2019
 """
 
 from typeLibrary import Song, Measure, Slice
-from exceptionsLibrary import TabFileException
+from exceptionsLibrary import TabFileException, TabConfigurationException
+from configUtilLibrary import ConfigOptionID
 
 """
 Returns whether a line with the following 3 properties is a timing line:
@@ -105,6 +106,7 @@ lastSlice - last Slice to be added to 'song'
 pre-conditions:
 if notes is not empty, it should have the same length as the string lists (gString, dString, aString, and eString)
 (*) start and end must be valid indices in the above lists
+if timing has been provided, then Song.timingLegend, Song.tieSymbol, and Song.dotSymbol should all have been updated from config. file
 
 Returns the last Slice to be added to 'song', replaces param. 'lastSlice'
 
@@ -196,6 +198,10 @@ loadedLines - array used to report info. on progress of parsing 'lines' to main 
 Raises TabFileException if any of the following occur:
     - lengths of strings and timing lines are unequal
     - the method did not interpret a valid number of string/timing lines
+Raises TabConfigurationException if timing has been supplied but one of the following configuration settings were not read:
+    - the mapping from timing symbols to length and unicode symbol
+    - the tie symbol used in the input tab file
+    - the dot symbol used in the input tab file
 Furthermore, in the event of helper method updateSong() failing, the following exceptions could be raised:
     - TabFileException
     - TabException
@@ -216,6 +222,9 @@ def buildSong(lines, song, rdr, loadedLines):
     tabSpacing = rdr.getTabSpacing()
     playingLegend = rdr.getPlayingLegend()
     hasSimpleStrings = rdr.hasSimpleStringLines()
+
+    if hasTiming and (len(Song.timingLegend) == 1 or not Song.tieSymbol or not Song.dotSymbol):
+        raise TabConfigurationException(reason="program configuration failed. Timing legend was not loaded properly",line=ConfigOptionID.TIMING_SYMBOLS.value+1)
 
     lastSlice = Slice() # holds last Slice to be added to the Song. This is kept updated by calls to 'updateSong()'
     nextUpdate = 0 # the helper method 'updateSong()' loads portions of the lists at a time into 'song'. This var. signifies the beginning of the next portion to be added to 'song'

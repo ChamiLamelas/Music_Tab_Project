@@ -13,6 +13,8 @@ This section will inform you of the necessary prerequisites to run this program,
 * [An ASCII Table](http://www.asciitable.com/)
 * For a discussion of text editors, and which one you may have on your computer refer to the subsection "Types of text editors" in the Wikipedia article on text files.
 
+Furthermore, the sheet music output is an HTML file that is encoded in UTF-8. To read more about Unicode and character encodings, visit the [Wikipedia Article on Unicode](https://en.wikipedia.org/wiki/Unicode).
+
 **Note:** the installation and running of this program has been tested *only* on Windows 10 using Python 3.7.2 and Python 3.7.3. Other versions of Python 3 have not been tested, but should be compatible. However, Python 2 is **NOT** compatible.
 
 ### Prerequisites
@@ -55,7 +57,7 @@ Lines that are "simple" string lines satisfy the following 4 properties:
 **(3)** The last non-whitespace character must be a "|"
 **(4)** Be at least 3 characters long, not counting the whitespace at either end.
 
-Lines that are not "simple" contain string data as represented by properties **1-4** above but with extraneous non-whitespace text on either end of it. This is different from extra text lines in input tab files which are discussed in the later section [Handling "EXtra" Text](#handing-"extra"-text) Now, for some examples:
+Lines that are not "simple" contain string data as represented by properties **1-4** above but with extraneous non-whitespace text on either end of it. This is different from extra text lines in input tab files which are discussed in the later section [Handling Extra Text](#handing-extra-text) Now, for some examples:
 
 **Example:** Here is a simple string line. Note that it starts with "G" followed by a "|" (the 1st case of property **1**).
 
@@ -192,7 +194,7 @@ TAB_SPACING=8
 
 Thus, before running the program, please check the number of spaces that are in a tab character for your text editor. For Windows users, Notepad follows the default and assigns each tab character to be equal to 8 spaces. Thus, you do not have to do anything in this case.
 
-### Handling "Extra" Text
+### Handling Extra Text
 
 If the input file you have created includes extraneous text such as the song name at the top, a legend at the bottom, number of verses, etc., the program will still be able to parse the file for string lines and timing lines (assuming those were input correctly). However, there is a performance set-back and if you have found a tab file with no extra text or you wish to edit it so it has none, then change the configuration option "hasextra" in tabReader.config from "true" to "false", as so:
 
@@ -228,6 +230,31 @@ PLAYING_LEGEND=hpb
 ```
 
 *Observe:* I do not specify what h, p, and b mean, just that they will appear. Lastly, **note**, digits (0-9) and whitespace are not allowed to be in the legend.  
+
+### Creating a Timing Legend
+
+In order for the program to properly parse the timing lines in the input tab file, it needs to know which symbols will occur in the timing lines to map them to tie symbols, dot symbols, and the different length notes. That is, there must be symbols for the following:
+
+* Tie symbol (+ by default)
+* Dot symbol (. by default)
+* Whole note (W by default)
+* Half note (H by default)
+* Quarter note (Q by default)
+* Eighth note (E by default)
+* 16th note (S by default)
+* 32nd note (T by default)
+* 64th note (F by default)
+* 128th note (O by default)  
+
+These are provided to the program by the user as a **10 character** string *matching the above order* in the configuration file on the line marked "TIMING_SYMBOL". It is essential that the symbols are provided in that order. As an example, consider the default configuration file's setting on this line using the default values listed above:
+
+```
+TIMING_SYMBOLS=+.WHQESTFO
+```
+
+Here it can be seen that the tie symbol is 1st, then the dot symbol, followed by the timing notes in decreasing time order as listed above.
+
+**Note:** The sheet music representations of these symbols are Unicode characters that cannot be changed and are taken from [this PDF](https://unicode.org/charts/PDF/U1D100.pdf).
 
 ## Running the Program
 
@@ -291,8 +318,6 @@ If interested, here are possible upgrades that would be in later versions of the
 * Using keys alongside the input file to output better sheet music that doesn't have to attach "#" to every sharped note.
 * Support for non-standard tuning (G, D, A, E).
 * A version for instruments other than a 4-string bass.
-* Support for other timing identifiers than W, H, Q, E, and S for whole note, half note, quarter note, eighth note, and sixteenth note respectively.
-* Support for extra text being placed at the end of string or timing lines.
 
 ## Built With
 
