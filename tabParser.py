@@ -32,7 +32,7 @@ params:
 line - a line who satisfies (i)-(iii) that will be checked to see if it satisfies the above property
 """
 def checkNoteLine(line):
-    return len(line.translate({ord(c) : None for c in "+. WHQES"})) == 0
+    return len(line.translate({ord(c) : None for c in Song.timingLegend})) == 0
 
 """
 Returns whether or not a line - with the below pre-conditions - is a "simple" string line from the input tab file.

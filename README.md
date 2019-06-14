@@ -6,7 +6,7 @@ The primary purpose of this project was to provide a program that takes an ASCII
 
 ## Getting Started
 
-This section will inform you of the necessary prerequisites to run this program, the necessary files, and how to prepare program input files. It may be helpful for you to read about what data can be put into an ASCII text file. Here are some useful links:
+This section will inform you of the necessary prerequisites to run this program and the necessary files to install. It may be helpful for you to read about what data can be put into an ASCII text file. Here are some useful links:
 
 * [Wikipedia Article on Text Files](https://en.wikipedia.org/wiki/Text_file)
 * [Wikipedia Article on ASCII](https://en.wikipedia.org/wiki/ASCII)
@@ -28,9 +28,10 @@ Second, the program's output was tested in Mozilla Firefox 67.0 (64-bit) and Goo
 
 ### Installing
 
-Each of the Python source files in the repository is necessary for the program to perform its intended purpose. To see what each one does, read the documentation at the top of each file. If you are interested, you can also read the documentation of each class and method in the source files.  
+*All* of the Python source files (files with the ".py" extension) in the repository is necessary for the program to perform its intended purpose. To see what each one does, read the documentation at the top of each file. If you are interested, you can also read the documentation of each class and method in the source files.  
 
 You can download the configuration file if you wish, if you run the program it will automatically generate one if it doesn't locate one on your computer.  
+If you are not planning on using GitHub in the future, you can remove ".gitignore".
 
 Make sure that *every* file you download is put in the *same* folder. Therefore, it may be suitable to download the entire repository as a ZIP file. To do this click the green button "Clone or download" and select "Download ZIP" from the dropdown menu.
 
@@ -44,7 +45,7 @@ String lines are lines of the input tab file that represent strings of the bass.
 
 Lines that are "simple" string lines satisfy the following 4 properties:
 
-**(1)** The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"
+**(1)** The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"  
 **(2)** Following the first non-whitespace character, a sequence of only the following characters:
 
 * vertical bar: "|"
@@ -54,7 +55,7 @@ Lines that are "simple" string lines satisfy the following 4 properties:
 
 *Note: whitespace is not allowed!*
 
-**(3)** The last non-whitespace character must be a "|"
+**(3)** The last non-whitespace character must be a "|"  
 **(4)** Be at least 3 characters long, not counting the whitespace at either end.
 
 Lines that are not "simple" contain string data as represented by properties **1-4** above but with extraneous non-whitespace text on either end of it. This is different from extra text lines in input tab files which are discussed in the later section [Handling Extra Text](#handling-extra-text) Now, for some examples:
@@ -95,7 +96,7 @@ This is for the first verse     G|1---3--2|     Let the last note ring.
 This is for the first verse     G|1--3--2 Let this note ring 3--|
 ```
 
-By default, string lines are assumed to be simple. If you have a file that has non-simple string lines please change this line in the configuration file from:
+By default, string lines are assumed to be simple. If you have a file that has non-simple string lines please change the following line in the configuration file from:
 
 ```
 SIMPLE_STRING_LINES=true
@@ -119,10 +120,8 @@ There are 3 primary things to consider when creating timing lines.
 
 * newline/carriage return: "\n" (at the end)
 * tab: "\t"
-* tie marking: "+"
-* dot marking: "."
 * space: " "
-* *only* the uppercase letters that denote lengths of time: W, H, Q, E, and S
+* *only* the characters that have been specified as the timing symbol, dot symbol, and timing symbols in the timing legend. Please read the section [Creating a Timing Legend](#creating-a-timing-legend) for more.
 
 These lines should *only* be present if the timing is supplied in the tab, which is usually not the case. Make sure that if the timing is supplied, the 1st configuration line in the configuration file (not counting empty lines or comments) should be
 
@@ -206,14 +205,14 @@ This will provide a slight performance upgrade to the program, but can be ignore
 
 **Notes:**
 
-* This should only be done if there is no extra text in the input tab file, otherwise errors could occur in file reading.
+* If you set HAS_EXTRA to "false" and there is extra text in the input file, then errors could occur in the file reading.
 * Lines that are made up entirely of whitespace do not count as "extra" text.
-* To see the discussion of extra text at the end of string lines, go to [Creating String Lines](#creating-string-lines).
-* There *cannot* be extra text in timing lines.
+* To see the discussion of extra text at the beginning or end of string lines, go to [Creating String Lines](#creating-string-lines).
+* There *cannot* be extra text in timing lines. That is, text that does not appear in the timing legend (see section [Creating a Timing Legend](#creating-a-timing-legend)).
 
 ### Creating a Playing Legend
 
-It is common for tabs to provide specifications within the string lines of how to play notes (to bend, hammer-on, pull-off, etc.) using a legend. In the tab-reading program, string lines need to have a specific definition in order to be identified by the program as explained in the section above [Preparing an Input Tab File](#preparing-an-input-tab-file). The legend configuration option as explained in the example below can be used to allow other characters to occur in string lines besides the ones listed explicitly in rule no. 1 in *Preparing an Input Tab File*.
+It is common for tabs to provide specifications within the string lines of how to play notes (to bend, hammer-on, pull-off, etc.) using a legend. The legend configuration option as explained in the example below can be used to allow other characters to occur in string lines besides the ones listed explicitly in rule **(1)** in [Preparing an Input Tab File](#preparing-an-input-tab-file).
 
 **Example:** Suppose I have a tab with the following legend.
 
@@ -223,7 +222,7 @@ p - pull-off
 b - bend
 ```
 
-For this program, you do not have to provide what each letter means, but it does need to know which characters will appear in string lines as mentioned above. The way that you can specify this is through the configuration file. By default the "legend" option is blank. However, if I wanted to tell the program that I am passing in an input file with string lines that contain the characters in the above legend, I would change the "legend" line of the configuration file like so:
+For this program, you do not have to provide what each letter means, but it does need to know which characters will appear in string lines as mentioned above. The way that you can specify this is through the configuration file. By default the "playing legend" option is blank. However, if I wanted to tell the program that I am passing in an input file with string lines that contain the characters in the above legend, I would change the "playing legend" line of the configuration file like so:
 
 ```
 PLAYING_LEGEND=hpb
@@ -233,7 +232,7 @@ PLAYING_LEGEND=hpb
 
 ### Creating a Timing Legend
 
-In order for the program to properly parse the timing lines in the input tab file, it needs to know which symbols will occur in the timing lines to map them to tie symbols, dot symbols, and the different length notes. That is, there must be symbols for the following:
+In order for the program to properly parse the timing lines in the input tab file, it needs to know which symbols will occur in the timing lines to map them to the following:
 
 * Tie symbol (+ by default)
 * Dot symbol (. by default)
@@ -246,7 +245,7 @@ In order for the program to properly parse the timing lines in the input tab fil
 * 64th note (F by default)
 * 128th note (O by default)  
 
-These are provided to the program by the user as a **10 character** string *matching the above order* in the configuration file on the line marked "TIMING_SYMBOL". It is essential that the symbols are provided in that order. As an example, consider the default configuration file's setting on this line using the default values listed above:
+These are provided to the program by the user as a **10 character** string *matching the above order* in the configuration file on the line marked "TIMING_SYMBOLS". It is essential that the symbols are provided in that order. As an example, consider the default configuration file's setting on this line using the default values listed above:
 
 ```
 TIMING_SYMBOLS=+.WHQESTFO
@@ -284,34 +283,36 @@ After you run the program, an output HTML file encoded in the *UTF-8* character 
 
 ### Understanding The Log File
 
-After the first time you run the program, a log file will be generated and placed in the same folder. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from. All program output will be placed into this file unless the logging itself fails. It is important to note that the log file will not only display error messages of problems that arose in program execution. This will be explained using the following example:
+After the first time you run the program, a log file will be generated and placed in the same folder. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from. All program output will be placed into this file unless the logging itself fails. It is important to note that the log file will display more information than just error messages of problems that arose in program execution. This will be explained using the following example:
 
-Suppose the program executes on a test file successfully and the log file reports the following. The program doesn't provide line numbers, but I have added them for convenience.
+Suppose the program executes on a test file successfully and the log file reports the following:
+
+**Note:** The program does not provide line numbers in the log file (1-9) nor does it include the roman numerals (i-iv). I have added these 2 sets of markers to make the explanation of the log output example below easier to follow.
 
 ```
-1) [2019-06-10 15:39:56.224618][> Log >] New Log Session started.
-2) [2019-06-10 15:39:56.224618][Info] Successfully located input file "C:\Users\Chami\Desktop\test.txt" in program arguments. Beginning tab-reading program configuration...
-3) [2019-06-10 15:39:56.224618][Info] Configuration file was found.
-4) [2019-06-10 15:39:56.224618][Info] Configuration file was loaded and its contents were read successfully. Beginning tab-reading...
-5) [2019-06-10 15:39:56.224618][Info] Input tab file "C:\Users\Chami\Desktop\test.txt" was opened and closed successfully.
-6) [2019-06-10 15:39:56.225615][Info] Song building of the data from "C:\Users\Chami\Desktop\test.txt" finished without any parsing errors. 25 (ii) out of the 25 (i) loaded lines were parsed successfully.
-7) [2019-06-10 15:39:56.225615][Info] 10 (iii) out of the 25 (ii) read lines were interpreted as string lines and timing lines. 6 (iv) Measure objects were created.
-8) [2019-06-10 15:39:56.232632][Info] Output HTML file "C:\Users\Chami\Desktop\test_staff.html" was opened and Song data was written successfully before closing.
-9) [2019-06-10 15:39:56.232632][Info] Tab-reading and sheet music generation was completed successfully in 0.008014 seconds.
+1) [2019-06-14 12:30:22.296435][> Log >] New Log Session started.
+2) [2019-06-14 12:30:22.296435][Info] Successfully located input file "C:\Users\Chami\Desktop\test.txt" in program arguments. Beginning tab-reading program configuration...
+3) [2019-06-14 12:30:22.298310][Info] Configuration file was found and loaded successfully.
+4) [2019-06-14 12:30:22.298310][Info] The contents of the configuration file were read successfully. Beginning tab-reading...
+5) [2019-06-14 12:30:22.310137][Info] Input tab file "C:\Users\Chami\Desktop\test.txt" was opened and closed successfully.
+6) [2019-06-14 12:30:22.349327][Info] Song building of the data from "C:\Users\Chami\Desktop\test.txt" finished without any parsing errors. 25 (ii) out of the 25 (i) loaded lines were read successfully.
+7) [2019-06-14 12:30:22.349327][Info] 10 (iii) out of the 25 (ii) read lines were interpreted as string lines. 6 (iv) Measure objects were created.
+8) [2019-06-14 12:30:22.513310][Info] Output HTML file "C:\Users\Chami\Desktop\test_staff.html" was opened and Song data was written successfully before closing.
+9) [2019-06-14 12:30:22.522899][Info] Tab-reading and sheet music generation was completed successfully in 0.203173 seconds.
 ```
 
-Observe that lines 2-9 provide a timeline of the execution of the program. If error messages were to occur after some of these lines, it provides you with an easier way to diagnose the problem. That is, you will know which parts of the program executed successfully. However, lines 6 and 7 provide a little more than that. The program stores the input data by parsing the input tab file and then organizing into a set of new structures or objects (details on their implementation can be found in typeLibrary.py). If an explicit error is encountered in this process, then an error message would appear after line 5 above. If no error occurs, then you will see 2 lines similar to line 6 and 7 above. These lines tell you a few things. The last 2 are the most likely to be helpful as they address issues that are more likely to occur.
+Observe that lines 2-9 provide a timeline of the execution of the program. If error messages were to occur after some of these lines, it provides you with an easier way to diagnose the problem. That is, you will know which parts of the program executed successfully. However, lines 6 and 7 provide a little more than that. The program stores the input data by parsing the input tab file and then organizing it into a set of new structures or objects (details on the objects' implementation can be found in typeLibrary.py). If an explicit error is encountered in this process, then an error message would appear after line 5 above. If no error occurs, then you will see 2 lines similar to line 6 and 7 above. These lines tell you a few things:
 
-* How many lines were loaded from the input tab file. This is equal to 25 in this example, but is denoted as (ii) for clarity. This is useful for telling you whether the entire file was even read properly.
-* How many lines were parsed from the set of loaded lines. This is equal to 25 in this example (as it should be if the program was successful) and is denoted as (i). This is useful for telling you whether the program missed some lines.
-* How many lines were interpreted as string or timing lines. This is equal to 10 in this example and is denoted as (iii). This is useful for telling you whether all the lines you intended to be strings or timing lines were interpreted by the program as so.
-* How many "things" in the input tab file were interpreted as measures. This is equal to 6 in this example and is denoted as (iv). The program stores anything between two horizontal bars "|" in a "Measure object", whether timing has been supplied or not. Therefore, this - similar to the 3rd bullet - gives you an idea of how much of the input tab file was read based on the bars you put in the input file.
-
-**Note:** If a logging error occurs, that will be printed to the console.
+* How many lines were loaded from the input tab file. This is denoted as (i). In this example, it is equal to 25. This is useful for telling you whether the entire file was read properly.
+* How many lines were parsed from the set of loaded lines. This is denoted as (ii). In this example, it is equal to 25 (as it should be if the program was successful) and is denoted as (ii). This is useful for telling you whether the program missed some lines.
+* How many lines were interpreted or parse as string or timing lines. This is denoted as (iii). In this example, it is equal to 10. This is useful for telling you whether all the lines you intended to be strings or timing lines were interpreted by the program as so.
+* How much data in the input tab file was interpreted as measures. This is denoted as (iv). In this example, it is equal to 6. The program stores anything between two horizontal bars "|" in a "Measure object", whether timing has been supplied or not. Therefore, this gives you an idea of how much of the input tab file was read based on the placement of the bars in the input file.
 
 It is important to realize however that the HTML file should also be checked carefully. The log file only reports *some* details of the program's execution and errors occurring in the program. If the user submitted incorrect input data, there are still circumstances where the program could execute correctly and still produce the wrong output. Consider the following.  
 
 **Example:** Suppose the user creates a tab file where every string line is formatted incorrectly. The program will read through and ignore each line, thinking that they are not supposed to be string lines. The program will then return an empty staff with no errors thrown. This is still not the correct output however.
+
+**Note:** If a logging error occurs, that will be printed to the console.
 
 ### Note about Cygwin
 
