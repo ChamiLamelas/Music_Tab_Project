@@ -26,7 +26,7 @@ WARNING - the warning logging type, somewhat visible; use when the user should b
 LOG - the log logging type, somewhat visible; use when the Logger class should be reporting something to the user
 """
 class Logger:
-    LOG_FILENAME = "tabReader.log"
+    LOG_FILENAME = "tabReaderLog.log"
     ERROR = ">> ERROR >>"
     INFO = "Info"
     WARNING = "> Warning >"

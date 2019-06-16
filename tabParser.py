@@ -13,26 +13,19 @@ from exceptionsLibrary import TabFileException, TabConfigurationException
 from configUtilLibrary import ConfigOptionID
 
 """
-Returns whether a line with the following 3 properties is a timing line:
+Returns whether a line with the following 3 pre-conditions is a timing line:
 
 (i) It contains at least 1 non-whitespace character
 (ii) It has been stripped on the end of whitespace
 (iii) It has had all its tabs replaced with spaces
 
-Lines that are meant to list the timings of notes that are played must be made up of ONLY the following characters and must contain at least 1 non-whitespace character.
-
-newline/carriage return: "\n" (at the end)
-tab: "\t" (cleaned by string.expandtabs() in loadLinesIntoLists())
-tie marking: "+"
-dot marking: "."
-space: " "
-*only* the uppercase letters that denote lengths of time: W, H, Q, E, and S
+Lines that are meant to be timing lines must contain only the characters in 'Song.allowedTimingChars'
 
 params:
 line - a line who satisfies (i)-(iii) that will be checked to see if it satisfies the above property
 """
 def checkNoteLine(line):
-    return len(line.translate({ord(c) : None for c in Song.timingLegend})) == 0
+    return len(line.translate({ord(c) : None for c in Song.allowedTimingChars})) == 0
 
 """
 Returns whether or not a line - with the below pre-conditions - is a "simple" string line from the input tab file.
@@ -43,26 +36,18 @@ pre-conditions:
 
 params:
 line - a line that is to be checked
-playingLegend - a set of characters that are allowed to be in string lines (see README)
 
 Simple string lines must satisfy the following properties:
 
 (a) The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"
-(b) Following either case of (a), a sequence of only the following characters:
-
-vertical bar: "|"
-hyphen: "-"
-digits (0-9)
-any characters in the playing legend
-
+(b) Following either case of (a), a sequence of only characters found in 'Song.allowedPlayingChars'
 (c) The last non-whitespace character must be a "|"
 (d) Be at least 3 characters long, not counting the whitespace at either end.
 """
-def checkSimpleStringLine(line, playingLegend):
-    checkSet = set("|-0123456789").union(playingLegend)
+def checkSimpleStringLine(line):
     if len(line) < 3:
         return False
-    return ((line[0] in "GDAE" and line[1] == "|") or line.startswith("|")) and len(line[1:].translate({ord(c) : None for c in checkSet})) == 0 and line.endswith("|")
+    return ((line[0] in "GDAE" and line[1] == "|") or line.startswith("|")) and len(line[1:].translate({ord(c) : None for c in Song.allowedPlayingChars})) == 0 and line.endswith("|")
 
 """
 Parses a given note. Here a note is not in the string-fret representation referenced in the type library classes, but at an index (or 2) in a string array. This
@@ -220,7 +205,6 @@ def buildSong(lines, song, rdr, loadedLines):
     hasTiming = rdr.isTimingSupplied()
     hasExtra = rdr.isExtraTextPresent()
     tabSpacing = rdr.getTabSpacing()
-    playingLegend = rdr.getPlayingLegend()
     hasSimpleStrings = rdr.hasSimpleStringLines()
 
     if hasTiming and (len(Song.timingLegend) == 1 or not Song.tieSymbol or not Song.dotSymbol):
@@ -260,7 +244,7 @@ def buildSong(lines, song, rdr, loadedLines):
                     sLine = out[0]
                     frontTrimSize += out[1]
                 arr = list(sLine)
-                if not hasExtra or checkSimpleStringLine(sLine, playingLegend): # if 'song' doesn't have any extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
+                if not hasExtra or checkSimpleStringLine(sLine): # if 'song' doesn't have any extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
                     if loadedLines[1] % 5 == 1:
                         gString.extend(arr)
                         # in the cases where there is extra text or whitespace before string lines, there must also be whitespace in front of the timing line corresponding to those string lines (i.e. above them in the tab file). The following loop removes
@@ -295,7 +279,7 @@ def buildSong(lines, song, rdr, loadedLines):
                 sLine = out[0]
                 diff += out[1]
             arr = list(sLine)
-            if not hasExtra or checkSimpleStringLine(sLine, playingLegend): # if 'song' doesn't have extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
+            if not hasExtra or checkSimpleStringLine(sLine): # if 'song' doesn't have extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
                 if loadedLines[1] % 4 == 0:
                     nextUpdate = len(gString) # set 'nextUpdate' to be the first index of the new data added to the g-string list. It is assumed by previous calls to 'updateSong()' that the data from all 4 lists have been read up to this index. Otherwise the error below would have been raised
                     gString.extend(arr)

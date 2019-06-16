@@ -47,6 +47,7 @@ def run(logger):
         rdr.readHasExtra()
         rdr.readSimpleString()
         timingSupplied = rdr.isTimingSupplied()
+        Song.loadPlayingLegend(rdr.getPlayingLegend())
 
         if timingSupplied:
             rdr.readTimingSymbolsList()

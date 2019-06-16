@@ -4,6 +4,27 @@ The primary purpose of this project was to provide a program that takes an ASCII
 
 **Date:** Summer 2019
 
+## Table of Contents
+* [Getting Started](#getting-started)
+        - [Prerequisites](#prerequisites)
+        - [Installing the Program](#installing-the-program)
+* [Preparing an Input Tab File](#preparing-an-input-tab-file)
+        - [Creating String Lines](#creating-string-lines)
+        - [Creating Timing Lines](#creating-timing-lines)
+* [Using the Configuration File](#using-the-configuration-file)
+        - [Tab Characters in the Input File](#tab-characters-in-the-input-file)
+        - [Handling Extra Text](#handling-extra-text)
+        - [Creating a Playing Legend](#creating-a-playing-legend)
+        - [Creating the Timing Legend](#creating-a-timing-legend)
+* [Running the Program](#running-the-program)
+        - [Understand the Log File (tabReaderLog.log)](#understanding-the-log-file)
+        - [Note about Cygwin](#note-about-cygwin)
+        - [Output and HTML](#output-and-html)
+* [Future Development](#future-development)
+* [Built With](#built-with)
+* [Authors](#authors)
+* [Acknowledgments](#acknowledgments)
+
 ## Getting Started
 
 This section will inform you of the necessary prerequisites to run this program and the necessary files to install. It may be helpful for you to read about what data can be put into an ASCII text file. Here are some useful links:
@@ -26,14 +47,14 @@ Second, the program's output was tested in Mozilla Firefox 67.0 (64-bit) and Goo
 * [Firefox Download Page](https://www.mozilla.org/en-US/firefox/new/)
 * [Chrome Download Page](https://www.google.com/chrome/)
 
-### Installing
+### Installing the Program
 
-*All* of the Python source files (files with the ".py" extension) in the repository is necessary for the program to perform its intended purpose. To see what each one does, read the documentation at the top of each file. If you are interested, you can also read the documentation of each class and method in the source files.  
-
-You can download the configuration file if you wish, if you run the program it will automatically generate one if it doesn't locate one on your computer.  
-If you are not planning on using GitHub in the future, you can remove ".gitignore".
+*All* of the Python source files (files with the ".py" extension) in the repository are necessary for the program to perform its intended purpose. To see what each one does, read the documentation at the top of each file. If you are interested, you can also read the documentation of each class and method in the source files.  
 
 Make sure that *every* file you download is put in the *same* folder. Therefore, it may be suitable to download the entire repository as a ZIP file. To do this click the green button "Clone or download" and select "Download ZIP" from the dropdown menu.
+
+You can download the configuration file if you wish, if you run the program it will automatically generate one if it doesn't locate one on your computer.  
+If you are not planning on creating your own GitHub repository for this project, you can delete the ".gitignore" file from your computer.
 
 ## Preparing an Input Tab File
 
@@ -173,7 +194,7 @@ E|-8--|
 
 ## Using the Configuration File
 
-I have added this section before running the program because it is essential to understand how the configuration file works (and how you may need to change it) before trying to run the program.
+I have added this section before running the program because it is essential to understand how the configuration file - which is called "tabReader.config" - works (and how you may need to change it) before trying to run the program.
 
 The configuration file is designed to provide the user more freedom in how the program behaves on input data. It may be best to examine the default configuration file before writing one on your own and make sure it has the same name as the default configuration file. If you are using Windows, I would recommend using WordPad if you do not have another text editor such as Atom or Notepad++ to open the config file, as Notepad doesn't display the line breaks in the default config file.
 
@@ -259,8 +280,9 @@ Here it can be seen that the tie symbol is 1st, then the dot symbol, followed by
 
 Once you have installed the required files and have a tab file, run the program using the following instructions:
 
-* Open your operating system's command line.
+* Open your operating system's command line. To learn about what a command line is, here is a [Wikipedia Article](https://en.wikipedia.org/wiki/Command-line_interface) and a [Code Academy Tutorial](https://www.codecademy.com/learn/learn-the-command-line/modules/learn-the-command-line-navigation-u).
 * Navigate to the directory to where you have downloaded the source files. This is because the commands below assume "tabReader.py" is in the current working directory. This can be done using the "change directory" command as explained in the [Wikipedia Article on this Command](https://en.wikipedia.org/wiki/Cd_(command)).
+* Make sure that all your configuration settings have been updated as discussed above in the sections [Using the Configuration File](#using-the-configuration-file) and [Preparing an Input Tab File](#preparing-an-input-tab-file).
 * If your input file is in the *same* directory as the source files, run the following command:
 
 ```
@@ -283,7 +305,7 @@ After you run the program, an output HTML file encoded in the *UTF-8* character 
 
 ### Understanding The Log File
 
-After the first time you run the program, a log file will be generated and placed in the same folder. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from. All program output will be placed into this file unless the logging itself fails. It is important to note that the log file will display more information than just error messages of problems that arose in program execution. This will be explained using the following example:
+After the first time you run the program, a log file called "tabReaderLog.log" will be generated and placed in the same folder. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from. All program output will be placed into this file unless the logging itself fails. It is important to note that the log file will display more information than just error messages of problems that arose in program execution. This will be explained using the following example:
 
 Suppose the program executes on a test file successfully and the log file reports the following:
 

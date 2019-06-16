@@ -115,10 +115,10 @@ class Slice:
     """
     def __init__(self):
         self.notes = list()
-        self.length = Song.timingLegend[Song.NO_TIMING_SYMBOL][0]
+        self.symbol = Song.NO_TIMING_SYMBOL
+        self.length = Song.timingLegend[self.symbol][0]
         self.numDots = 0
         self.nextDotLength = -1
-        self.symbol = Song.NO_TIMING_SYMBOL
         self.maxStaffPos = -1
         self.minStaffPos = StaffString.STAFF_HEIGHT
         self.hasSharp = False
@@ -172,7 +172,7 @@ class Slice:
     params:
     symbol - a given length symbol
 
-    pre-condition: the time length associated with 'symbol' in 'Song.lengths' must be in (0, 1].
+    pre-condition: the time length associated with 'symbol' in 'Song.timingLegend' must be in (0, 1].
 
     Raises a TabException if checkLengthSymbol(symbol) fails (see above doc.)
     """
@@ -227,7 +227,7 @@ class Slice:
         DOT = "\u00b7"
 
         for note in self.notes:
-            str = Song.timingLegend[self.symbol][1] # temp. variable that will be ultimately placed into the StaffString, s
+            str = Song.timingLegend[self.symbol][1]
             fill = 1 # tracks how much of the StaffString's width has been filled. This is updated as sharps or dots are added to "str"
             if note.isSharp():
                 str += SHARP
@@ -390,10 +390,14 @@ timingLegend - a legend that maps timing symbols to their timing lengths (decima
 NO_TIMING_SYMBOL - key in unicode mapping that points to the unicode character to be placed on sheet music when timing for a Slice is not specified
 tieSymbol - character to be placed before a timing symbol that denotes the Slice with that timing is tied to the prior Slice
 dotSymbol - character to be placed (can be more than once) after a timing symbol that denotes a Slice's timing is dotted
+allowedTimingChars - characters allowed in timing lines, specified by 'TIMING_SYMBOLS' config. option
+allowedPlayingChars - characters allowed in playing lines, specified by in part by 'PLAYING_LEGEND' config. option
 """
 class Song:
-    NO_TIMING_SYMBOL = "no symbol"
+    NO_TIMING_SYMBOL = "\u2022"
     timingLegend = {NO_TIMING_SYMBOL : [0, "\u2022"]} # if the length is specified it must be greater than 0. Hence the no timing length mapping = 0
+    allowedTimingChars = set({" "})
+    allowedPlayingChars = set("-|0123456789")
     tieSymbol = None
     dotSymbol = None
 
@@ -417,6 +421,16 @@ class Song:
         Song.timingLegend[symbolList[7]] = [0.03125, "\U0001D162"]
         Song.timingLegend[symbolList[8]] = [0.015625, "\U0001D163"]
         Song.timingLegend[symbolList[9]] = [0.0078125, "\U0001D164"]
+        Song.allowedTimingChars = Song.allowedTimingChars.union(set(symbolList))
+
+    """
+    Loads playing legend info. from 'PLAYING_LEGEND' config. setting (see configUtilLibrary.py doc.).
+
+    params:
+    playingLegend - a character string holding additional allowed chars. in string lines.
+    """
+    def loadPlayingLegend(playingLegend):
+        Song.allowedPlayingChars = Song.allowedPlayingChars.union(set(playingLegend))
 
     """
     Constructs an empty Song object given a gap size and extra text setting (see class doc.).

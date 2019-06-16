@@ -6,6 +6,7 @@ Exception Types:
 TabException - general exception type for the project used to report general errors in the tab that cannot be reported more specifically
 MeasureException - caused by the construction of a Measure whose length is not <= 1
 TabFileException - error caused by incorrect input tab file
+TabIOException - error caused by file reading/writing in tab program.
 TabConfigurationException - exception caused by incorrect program configuration file
 StaffException - caused by illegal StaffString object construction
 StaffOutOfBoundsException - caused by accessing a StaffString index that is out of bounds
@@ -61,3 +62,9 @@ class LoggingException(Exception):
         self.msg = "Log operation \"{0}\" failed. Reason: {1}".format(op, reason)
     def __str__(self):
         return str(self.msg)
+
+"""
+TODO 
+"""
+def handleTraceback(tracebackStr):
+    pass

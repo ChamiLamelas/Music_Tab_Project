@@ -1,2 +1,4 @@
-tabReader.log
+tabReaderLog.log
 __pycache__/
+keyUtilLibrary.py
+tabReader.config
