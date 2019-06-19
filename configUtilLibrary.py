@@ -18,8 +18,7 @@ GAPSIZE - line number and id of the option that signfies the output's sheet musi
 TAB_SPACING - line number and id of the option that signifies the number of spaces in a tab in the user's text editor
 HAS_EXTRA - line number and id of the option that signifies whether extra text exists in the file
 PLAYING_LEGEND - line number and id of the option that holds a legend of other characters that may appear in string lines (e.g. h for hammer-ons, p for pull-offs, b for bends, etc.)
-SIMPLE_STRING_LINES - line number and id of the option that signifies whether the string lines in the tab file are "simple". That is, lines with string information contain ONLY string information: no extra text on either end of the string data.
-TIMING_SYMBOLS -
+TIMING_SYMBOLS - line number and id of the option that holds a legend of the characters that will appear in timing lines (not inc. spaces)
 """
 class ConfigOptionID(Enum):
       TIMING_SUPPLIED = 0
@@ -27,8 +26,7 @@ class ConfigOptionID(Enum):
       TAB_SPACING = 2
       HAS_EXTRA = 3
       PLAYING_LEGEND = 4
-      SIMPLE_STRING_LINES = 5
-      TIMING_SYMBOLS = 6
+      TIMING_SYMBOLS = 5
 
 """
 This class is used to read the configuration file to be used by tabReader.py. The class stores the config. options' settings as attributes in addition to the list of lines read from the input config. file:
@@ -203,27 +201,10 @@ class ConfigReader:
     """
     def readPlayingLegend(self):
         setting = self.readSetting(ConfigOptionID.PLAYING_LEGEND) # legend option must be on line 4
-        leg = set()
         for ch in setting:
-            if ch.isdigit() or ch.isspace():
+            if ch == " " or ch.isdigit():
                 raise TabConfigurationException(reason="illegal legend value \"{0}\". Cannot be a whitespace character or digit (0-9)".format(ch), line=ConfigOptionID.PLAYING_LEGEND.value+1)
-            else:
-                leg.add(ch)
-        self.settings[ConfigOptionID.PLAYING_LEGEND.value] = leg
-
-    """
-    Reads the simple string lines config. option.
-
-    Raises TabConfigurationException if readSetting() fails or the setting is neither ConfigReader.SETTING_YES nor ConfigReader.SETTING_NO.
-    """
-    def readSimpleString(self):
-        setting = self.readSetting(ConfigOptionID.SIMPLE_STRING_LINES)
-        if setting == ConfigReader.SETTING_YES:
-            self.settings[ConfigOptionID.SIMPLE_STRING_LINES.value] = True
-        elif setting == ConfigReader.SETTING_NO:
-            self.settings[ConfigOptionID.SIMPLE_STRING_LINES.value] = False
-        else:
-            raise TabConfigurationException(reason="setting \"{0}\" for option \"{1}\" not recognized. Must be {2} or {3}".format(setting, ConfigOptionID.SIMPLE_STRING_LINES.name, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO), line=ConfigOptionID.SIMPLE_STRING_LINES.value+1)
+        self.settings[ConfigOptionID.PLAYING_LEGEND.value] = setting
 
     """
     Reads the timing symbols list config. option.
@@ -299,9 +280,6 @@ class ConfigReader:
     """
     def isExtraTextPresent(self):
         self.checkIfOptionRead(ConfigOptionID.HAS_EXTRA)
-        self.checkIfOptionRead(ConfigOptionID.SIMPLE_STRING_LINES)
-        if not self.settings[ConfigOptionID.HAS_EXTRA.value] and not self.settings[ConfigOptionID.SIMPLE_STRING_LINES.value]:
-            raise TabConfigurationException(reason="conflicting config. settings: \"{1}={3}\" and \"{0}={3}\". If {0}={3}, then {1}={2}".format(ConfigOptionID.HAS_EXTRA.name, ConfigOptionID.SIMPLE_STRING_LINES.name, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO))
         return self.settings[ConfigOptionID.HAS_EXTRA.value]
 
     """
@@ -312,23 +290,6 @@ class ConfigReader:
     def getPlayingLegend(self):
         self.checkIfOptionRead(ConfigOptionID.PLAYING_LEGEND)
         return self.settings[ConfigOptionID.PLAYING_LEGEND.value]
-
-    """
-    Checks that (i) the simple string lines option has been read and that (ii) there is no conflict with the setting for 'ConfigOptionID.HAS_EXTRA' before returning its value to the user. Use instead of directly accessing 'self.settings'.
-
-    Note: for (ii) to be checked, the setting for 'ConfigOptionID.HAS_EXTRA' must have also been read prior to calling this method.
-
-    Raises TabConfigurationException if:
-    - 'checkIfOptionRead()' fails for this option
-    - 'checkIfOptionRead()' fails for 'ConfigOptionID.HAS_EXTRA'
-    - the user has specified there is no extra text (the setting of 'ConfigOptionID.HAS_EXTRA' is 'ConfigReader.SETTING_NO') but there are non-simple string lines (the setting of 'ConfigOptionID.SIMPLE_STRING_LINES' is 'ConfigReader.SETTING_YES'). If there are non-simple string lines, both settings must be false.
-    """
-    def hasSimpleStringLines(self):
-        self.checkIfOptionRead(ConfigOptionID.SIMPLE_STRING_LINES)
-        self.checkIfOptionRead(ConfigOptionID.HAS_EXTRA)
-        if not self.settings[ConfigOptionID.HAS_EXTRA.value] and not self.settings[ConfigOptionID.SIMPLE_STRING_LINES.value]:
-            raise TabConfigurationException(reason="conflicting config. settings: \"{1}={3}\" and \"{0}={3}\". If {0}={3}, then {1}={2}".format(ConfigOptionID.HAS_EXTRA.name, ConfigOptionID.SIMPLE_STRING_LINES.name, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO))
-        return self.settings[ConfigOptionID.SIMPLE_STRING_LINES.value]
 
     """
     Checks that the timing symbol list has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
@@ -352,7 +313,6 @@ defaultValues[ConfigOptionID.GAPSIZE.value] = 3
 defaultValues[ConfigOptionID.TAB_SPACING.value] = 8
 defaultValues[ConfigOptionID.HAS_EXTRA.value] = ConfigReader.SETTING_YES
 defaultValues[ConfigOptionID.PLAYING_LEGEND.value] = ""
-defaultValues[ConfigOptionID.SIMPLE_STRING_LINES.value] = ConfigReader.SETTING_YES
 defaultValues[ConfigOptionID.TIMING_SYMBOLS.value] = "+.WHQESTFO"
 
 # place it into the default file text static variable

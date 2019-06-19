@@ -1,9 +1,6 @@
 """
 This file consists of the functions that are used in parsing the input tab file and loading its data into music type objects. Its primary method is 'buildSong()' while the others are helper methods that are meant to assist it. This is the sole method used by tabReader.py.
 
-Compatibility Note: This file is what makes this project not incompatible with Python 2. Since Python 3 strings are represented in Unicode, the string.translate() method was changed. This method now requires a single argument, a translation table, which is different from the string.translate() method in Python 2.
-While string.strip() seems to work for the purposes of these methods, it appears to be much slower than string.translate() as each combination of the passed arguments is run through and stripped.
-
 author: Chami Lamelas
 date: Summer 2019
 """
@@ -11,43 +8,35 @@ date: Summer 2019
 from typeLibrary import Song, Measure, Slice
 from exceptionsLibrary import TabFileException, TabConfigurationException
 from configUtilLibrary import ConfigOptionID
+import re
 
 """
-Returns whether a line with the following 3 pre-conditions is a timing line:
-
-(i) It contains at least 1 non-whitespace character
-(ii) It has been stripped on the end of whitespace
-(iii) It has had all its tabs replaced with spaces
-
-Lines that are meant to be timing lines must contain only the characters in 'Song.allowedTimingChars'
+Returns whether or not a given character string represents a timing line. That is, it is made entirely of the characters in 'Song.allowedTimingChars'.
 
 params:
-line - a line who satisfies (i)-(iii) that will be checked to see if it satisfies the above property
+line - a character string
+
+pre-condition:
+'line' is not just whitespace. If this has not been checked, a line made up of whitespace would be counted as a valid timing line.
 """
-def checkNoteLine(line):
-    return len(line.translate({ord(c) : None for c in Song.allowedTimingChars})) == 0
+def isTimingLine(line):
+    return re.match(r'^[{0}]+$'.format(Song.allowedTimingChars), line) is not None
 
 """
-Returns whether or not a line - with the below pre-conditions - is a "simple" string line from the input tab file.
-
-pre-conditions:
-(i) The line has at least 1 non-whitespace character
-(ii) The line has been stripped on the end of whitespace
+Extracts the string data from a character string.
 
 params:
-line - a line that is to be checked
+line - a character string
 
-Simple string lines must satisfy the following properties:
+The string data in 'line' is the 1st substring that begins with a "|", is made up entirely of characters in 'Song.allowedPlayingChars', and ends with a "|".
+Extra text is allowed in 'line' and is assumed to be any text without a "|" before the string data segment above and any text following that same segment.
 
-(a) The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"
-(b) Following either case of (a), a sequence of only characters found in 'Song.allowedPlayingChars'
-(c) The last non-whitespace character must be a "|"
-(d) Be at least 3 characters long, not counting the whitespace at either end.
+Note: extra text is not allowed to separate string data. Example: say 'line=|--1--| extra |--2--|'. The string data is identified as |--1--|.
+
+If a substring with this pattern cannot be found, 'None' is returned.
 """
-def checkSimpleStringLine(line):
-    if len(line) < 3:
-        return False
-    return ((line[0] in "GDAE" and line[1] == "|") or line.startswith("|")) and len(line[1:].translate({ord(c) : None for c in Song.allowedPlayingChars})) == 0 and line.endswith("|")
+def extractStringData(line):
+    return re.match(r'^([^\|]*)(\|[{0}]+\|)(.*)$'.format(Song.allowedPlayingChars), line)
 
 """
 Parses a given note. Here a note is not in the string-fret representation referenced in the type library classes, but at an index (or 2) in a string array. This
@@ -71,7 +60,9 @@ def parseNote(string, idx, slice, stringID):
         if idx < len(string) - 1 and string[idx + 1].isdigit(): # found a 2-digit fret number, update fret variable
             fret += string[idx + 1]
             skip = True # skip reading the next index in the string as its fret value is considered as part of this note
+        # else: fret is only 1 digit, do nothing
         slice.addNote(stringID, fret)
+    # else: fret is not a valid fret, it is a "-" or "|", do nothing
     return skip
 
 """
@@ -79,8 +70,6 @@ Updates a Song object given a subset of the input data stored as a group of list
 
 params:
 song - a Song object to be updated
-start - starting index of new data to be loaded into 'song' (*)
-end - ending index of new data to be loaded into 'song' (*)
 notes - list of timing info.
 gString - representation of G-string
 dString - representation of D-string
@@ -90,7 +79,6 @@ lastSlice - last Slice to be added to 'song'
 
 pre-conditions:
 if notes is not empty, it should have the same length as the string lists (gString, dString, aString, and eString)
-(*) start and end must be valid indices in the above lists
 if timing has been provided, then Song.timingLegend, Song.tieSymbol, and Song.dotSymbol should all have been updated from config. file
 
 Returns the last Slice to be added to 'song', replaces param. 'lastSlice'
@@ -100,12 +88,22 @@ Raises TabFileException if helper method parseNote() fails, Slice.setLength() fa
 Raises TabException if Slice.applyDot() or Slice.tie() fail (see their doc.)
 Raises MeasureException if Song.addMeasure() fails (see its doc.)
 """
-def updateSong(song, start, end, notes, gString, dString, aString, eString, lastSlice):
+def updateSong(song, notes, gString, dString, aString, eString, lastSlice):
     measure = Measure() # temp. var. to store Measure currently being built. It is reset after being added to 'song'
-    i = start # 'i' iterates over portion of provided lists; that is, the interval ['start', 'end']
-    while i <= end:
+    i = 0
+    while i < len(gString):
         slice = Slice() # Slice being built from the data at index 'i' in the lists
         skip1 = False # determines whether a 2-digit fret number has been detected, and if so skip the next index in the lists
+
+        # at a given index 'i', if 'notes[i]' is a timing id but all the string lists at index 'i' hold hyphens, this indicates a rest. Therefore, by going through 'notes' and "looking below" at the string lists, rests can be accounted for
+        # and the notes in the string lists can be added after if they are present (see 4 calls to 'parseNote()' below)
+        if notes and notes[i] in Song.timingLegend:
+            slice.setLength(notes[i])
+            j = i + 1
+            while j < len(notes) and notes[j] == Song.dotSymbol: # apply any following dots, as rests can be dotted
+                slice.applyDot()
+                j += 1
+        # else: no timing provided or notes[i] is a tie, dot, or space; do nothing
 
         # parse the Notes from all 4 string lists, and update 'skip1'
         if parseNote(gString, i, slice, "G"):
@@ -117,55 +115,31 @@ def updateSong(song, start, end, notes, gString, dString, aString, eString, last
         if parseNote(eString, i, slice, "E"):
             skip1 = True
 
-        if slice.isEmpty():
+        if i > 0 and notes and notes[i] in Song.timingLegend and notes[i - 1] == Song.tieSymbol: # only tie Slices after notes have been added, otherwise 'lastSlice' and 'slice' could have differing note counts as the count of 'slice' would be 0
+            lastSlice.tie(slice)
+
+        if slice.isRest() or not slice.isEmpty():
+            measure.addSlice(slice)
+            lastSlice = slice
+        else:
             # the following 2 if-statements can be summarized as follows: if the string list entry at index 'i' is a measure line, then the entries at 'i' for all the other 3 string lists must also be a measure line. Otherwise, raise an error
             if gString[i] == "|" or dString[i] == "|" or aString == "|" or eString[i] == "|":
                 if gString[i] != "|" or dString[i] != "|" or aString[i] != "|" or eString[i] != "|":
-                    raise TabFileException("improper measure line detected", "Not all string lists have a \"|\" at column " + str(i), line=i)
+                    raise TabFileException("improper measure line detected", "Not all string lists have a \"|\" at the specified index.", line=i)
                 if not measure.isEmpty():
                     song.addMeasure(measure)
                     measure = Measure()
                 # else don't add empty Measures to the Song
-            # else all the characters in the string lists at this index don't matter: they are members of legend or are "-"
-        else:  # if user specified that the timing wasn't supplied, the notes array was never filled
-            if notes: # if timing was supplied, set the Slice's length to its raw time at notes[i] and tie it if notes[i-1]="+" and apply any dots that follow notes[i]
-                slice.setLength(notes[i])
-                if i > 0 and notes[i - 1] == Song.tieSymbol:
-                    lastSlice.tie(slice)
-                j = i+1
-                while j < len(notes) and notes[j] == Song.dotSymbol:
-                    slice.applyDot()
-                    j = j + 1
-            # else timing hasn't been loaded, do nothing
+            # else all the characters in the string lists at this index don't matter: they are members of the playing legend or are "-"
 
-            measure.addSlice(slice) # regardless, add the Slice to the temp. measure
-            lastSlice = slice # update last Slice for future ties
-
-        # apply skip so the next list entries to be read - signified by index 'i' - is updated properly
-        if skip1:
+        # update 'i' accordingly with the knowledge that indexes with dots in 'notes' can be skipped (as there should be no notes below them) and can skip with a note with a double digit fret is encountered. See README for more info. on the latter case.
+        if slice.getDotCount() > 0:
+            i += slice.getDotCount()
+        elif skip1:
             i += 2
         else:
             i += 1
     return lastSlice # return updated last Slice to be added to 'song'
-
-"""
-Given a line from the tab file, shortens it by removing extra text on both ends as long as there is at least a 3 character string data segment. That is a 3 character segment with "|" on both ends.
-This is the shortest possible string data segment as outlined in the doc. for 'checkStringLine()'
-
-param:
-line - a non-simple string line
-
-pre-condition: as mentioned above, line must be stripped on both ends of whitespace
-
-Returns a 2-element list. The first element is the updated line and the 2nd is the number of elements stripped from the front of the line. This is used in 'buildSong()'
-"""
-def shortenNonSimpleString(line):
-    startingBar = line.find("|")
-    endingBar = line.rfind("|")
-    if endingBar - startingBar >= 2:
-        return [line[startingBar:endingBar+1], startingBar]
-    else:
-        return [line, 0]
 
 """
 Builds a Song given the list of lines read from the input file and configuration data loaded by the method run(). At the end of
@@ -192,7 +166,7 @@ Furthermore, in the event of helper method updateSong() failing, the following e
     - TabException
     - MeasureException
     - TabConfigurationException
-The reasons as to why these exceptions could be raised seemed to lengthy to add here. Instead, look at that method's doc.
+The reasons as to why these exceptions could be raised seemed to lengthy to add here. Instead, look at the doc. for 'updateSong()'.
 """
 def buildSong(lines, song, rdr, loadedLines):
     notes = list() # list that holds timing info
@@ -205,13 +179,11 @@ def buildSong(lines, song, rdr, loadedLines):
     hasTiming = rdr.isTimingSupplied()
     hasExtra = rdr.isExtraTextPresent()
     tabSpacing = rdr.getTabSpacing()
-    hasSimpleStrings = rdr.hasSimpleStringLines()
 
     if hasTiming and (len(Song.timingLegend) == 1 or not Song.tieSymbol or not Song.dotSymbol):
         raise TabConfigurationException(reason="program configuration failed. Timing legend was not loaded properly",line=ConfigOptionID.TIMING_SYMBOLS.value+1)
 
     lastSlice = Slice() # holds last Slice to be added to the Song. This is kept updated by calls to 'updateSong()'
-    nextUpdate = 0 # the helper method 'updateSong()' loads portions of the lists at a time into 'song'. This var. signifies the beginning of the next portion to be added to 'song'
     while loadedLines[0] < len(lines): # iterates over lines to be read
          # (1) All whitespace should be stripped from the end of any line. In the case of empty lines, this will convey the same message as stripping both ends of the line of whitespace. For timing lines,
         # this allows the proper number of spaces to be added at the end of notes line as explained in the method doc. for this method. For string lines, this will solve the issue
@@ -228,71 +200,72 @@ def buildSong(lines, song, rdr, loadedLines):
 
         if hasTiming: # if user has specified that timing was supplied -> read lines in groups of 5, and note lines must be checked for
             if loadedLines[1] % 5 == 0: # if any multiple of 5 lines has been read, the next line should be a note line if input file is valid.
-                arr = list(sLine)
-                if not hasExtra or checkNoteLine(sLine): # if 'song' doesn't have extra text or if 'sLine' is a valid note-timing line, add it to the notes list and update 'loadedLines[1]'
-                    nextUpdate = len(notes) # set 'nextUpdate' to be the first index of the new data added to the timing list. It is assumed by previous calls to 'updateSong()' that the data from all 5 lists have been read up to this index. Otherwise the error below would have been raised
-                    notes.extend(arr)
+                if isTimingLine(sLine):
+                    notes = list(sLine)
                     loadedLines[1] += 1
                 else: # otherwise, record it as extra text
                     song.placeExtraLine(sLine)
             else:
-                init = len(sLine)
-                sLine = sLine.lstrip()
-                frontTrimSize = init - len(sLine) # stores how much has been trimmed from the front of the line
-                if not hasSimpleStrings: # can use 'checkSimpleStringLine()' to check 'sLine' in this case, but first remove extra text from ends.
-                    out = shortenNonSimpleString(sLine)
-                    sLine = out[0]
-                    frontTrimSize += out[1]
+                orig = len(sLine) # length of char. string before any changes
                 arr = list(sLine)
-                if not hasExtra or checkSimpleStringLine(sLine): # if 'song' doesn't have any extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
+                if hasExtra: # if there is extra text, extract string data into a match object with 3 groups: group 1 is the extra text before the string data, group 2 is the string data, and group 3 is the extra text after the string data
+                    match = extractStringData(sLine)
+                    if match is not None: # match object was created successfully, so string data was found.
+                        arr = list(match.group(2))
+                    # else: this line does not have string data as the match was either None or not created properly
+                else: # if there's no extra text, should only be whitespace at the start -> strip it
+                    sLine = sLine.lstrip()
+                if not hasExtra or match is not None:
                     if loadedLines[1] % 5 == 1:
-                        gString.extend(arr)
-                        # in the cases where there is extra text or whitespace before string lines, there must also be whitespace in front of the timing line corresponding to those string lines (i.e. above them in the tab file). The following loop removes
-                        # the correct number of spaces from the beginning of the latest extension to the notes list by calculating how much was stripped from the front of sLine. This is necessary to realign the timing symbols with the notes on the string
-                        # lines below.
-                        for i in range(0, frontTrimSize):
-                            del notes[nextUpdate]
-                         # need to update the last addition to the notes list to add spaces to make the timing line of the input file have the same length as the g-string list below it
+                        gString = arr
+                        trim = 0 # trim holds the no. of spaces to be removed from the beginning of 'notes' and is calculated from the match obj. if there is extra text or the amount of whitespace at the beginning of 'gString' if there's no extra text
+                        if hasExtra:
+                            trim = len(match.group(1))
+                        else:
+                            trim = len(gString) - orig
+                        for i in range(0, trim):
+                            del notes[0]
+                        # need to update the last addition to the notes list to add spaces to make the timing line of the input file have the same length as the g-string list below it
                         # otherwise, for input files where tabs may be on separate lines, the notes' timings would not be above the 1st digit of the fret of the note corresponding
                         # to it. This is what is needed in the helper method 'updateSong()' in order to properly parse the input data and load it into a 'song'
                         for i in range(len(notes), len(gString)):
                             notes.append(" ")
                     elif loadedLines[1] % 5 == 2:
-                        dString.extend(arr)
+                        dString = arr
                     elif loadedLines[1] % 5 == 3:
-                        aString.extend(arr)
+                        aString = arr
                     elif loadedLines[1] % 5 == 4:
-                        eString.extend(arr)
+                        eString = arr
                         # check that the string lists and timing list all have the same length before trying to load the list data into music type objects. Otherwise, 'updateSong()' may run into an indexing error
                         if len(gString) != len(dString) or len(gString) != len(aString) or len (gString) != len(eString) or len(gString) != len(notes):
                             raise TabFileException("lists not loaded properly", "The lists holding the strings (lengths = {0}, {1}, {2}, {3}) and the list holding the timing ({4}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString), len(notes)), line=loadedLines[0])
-                        lastSlice = updateSong(song, nextUpdate, len(gString)-1, notes, gString, dString, aString, eString, lastSlice)
+                        lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
                     loadedLines[1] += 1
                 else: # Otherwise, record it as extra text
                     song.placeExtraLine(sLine)
         else: # the user has specified that no timing was supplied -> read lines in groups of 4
-            init = len(sLine)
-            sLine = sLine.lstrip()
-            diff = init - len(sLine)
-            if not hasSimpleStrings: # can use 'checkSimpleStringLine()' to check 'sLine' in this case, but first remove extra text from ends.
-                out = shortenNonSimpleString(sLine)
-                sLine = out[0]
-                diff += out[1]
             arr = list(sLine)
-            if not hasExtra or checkSimpleStringLine(sLine): # if 'song' doesn't have extra text or if 'sLine' is a valid string line, add it to its appropriate string list and update 'loadedLines[1]'
+            orig = len(sLine) # len. of char. string before any changes
+            if hasExtra: # if there is extra text, extract string data into a match object with 3 groups: group 1 is the extra text before the string data, group 2 is the string data, and group 3 is the extra text after the string data
+                match = extractStringData(sLine)
+                if match is not None: # match object was created successfully, so string data was found.
+                    arr = list(match.group(2))
+                # else: this line does not have string data as the match was either None or not created properly
+            else: # if there's no extra text, should only be whitespace at the start -> strip it
+                sLine = sLine.lstrip()
+            if not hasExtra or match is not None:
                 if loadedLines[1] % 4 == 0:
-                    nextUpdate = len(gString) # set 'nextUpdate' to be the first index of the new data added to the g-string list. It is assumed by previous calls to 'updateSong()' that the data from all 4 lists have been read up to this index. Otherwise the error below would have been raised
-                    gString.extend(arr)
+                    gString = arr
                 elif loadedLines[1] % 4 == 1:
-                    dString.extend(arr)
+                    dString = arr
                 elif loadedLines[1] % 4 == 2:
-                    aString.extend(arr)
+                    aString = arr
                 elif loadedLines[1] % 4 == 3:
-                    eString.extend(arr)
+                    eString = arr
                     # check that the string lists have the same length before trying to load the list data into music type objects. Otherwise, 'updateSong()' may run into an indexing error
                     if len(gString) != len(dString) or len(gString) != len(aString) or len(gString) != len(eString):
                         raise TabFileException("lists not loaded properly", "The lists holding strings (lengths = {0}, {1}, {2}, {3}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString)), line=loadedLines[0])
-                    lastSlice = updateSong(song, nextUpdate, len(gString)-1, notes, gString, dString, aString, eString, lastSlice)
+                    lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
                 loadedLines[1] += 1
             else:
                 song.placeExtraLine(sLine)

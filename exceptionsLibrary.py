@@ -62,9 +62,3 @@ class LoggingException(Exception):
         self.msg = "Log operation \"{0}\" failed. Reason: {1}".format(op, reason)
     def __str__(self):
         return str(self.msg)
-
-"""
-TODO 
-"""
-def handleTraceback(tracebackStr):
-    pass

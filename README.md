@@ -5,21 +5,24 @@ The primary purpose of this project was to provide a program that takes an ASCII
 **Date:** Summer 2019
 
 ## Table of Contents
-* [Getting Started](#getting-started)
-        - [Prerequisites](#prerequisites)
-        - [Installing the Program](#installing-the-program)
+
+Here is an ordered outline of this file's contents:
+
+* [Getting Started](#getting-started)  
+        * [Prerequisites](#prerequisites)
+	* [Installing the Program](#installing-the-program)
 * [Preparing an Input Tab File](#preparing-an-input-tab-file)
-        - [Creating String Lines](#creating-string-lines)
-        - [Creating Timing Lines](#creating-timing-lines)
+	* [Creating String Lines](#creating-string-lines)
+	* [Creating Timing Lines](#creating-timing-lines)
 * [Using the Configuration File](#using-the-configuration-file)
-        - [Tab Characters in the Input File](#tab-characters-in-the-input-file)
-        - [Handling Extra Text](#handling-extra-text)
-        - [Creating a Playing Legend](#creating-a-playing-legend)
-        - [Creating the Timing Legend](#creating-a-timing-legend)
+	* [Tab Characters in the Input File](#tab-characters-in-the-input-file)
+	* [Handling Extra Text](#handling-extra-text)
+	* [Creating a Playing Legend](#creating-a-playing-legend)
+	* [Creating a Timing Legend](#creating-a-timing-legend)
 * [Running the Program](#running-the-program)
-        - [Understand the Log File (tabReaderLog.log)](#understanding-the-log-file)
-        - [Note about Cygwin](#note-about-cygwin)
-        - [Output and HTML](#output-and-html)
+	* [Understand the Log File](#understanding-the-log-file)
+	* [Note about Cygwin](#note-about-cygwin)
+	* [Output and HTML](#output-and-html)
 * [Future Development](#future-development)
 * [Built With](#built-with)
 * [Authors](#authors)
@@ -62,7 +65,7 @@ The input tab files follow the general format of tabs found on [Ultimate Guitar 
 
 ### Creating String Lines
 
-String lines are lines of the input tab file that represent strings of the bass. This program offers the ability to read 2 types of string lines. Ones that are "simple" and ones that are not. I will provide a description of these 2 types followed by examples of both.
+String lines are lines of the input tab file that represent strings of the bass. This program offers the ability to read 2 types of string lines. String lines that contain non-whitespace or "extra" text at the beginning and/or at the end and string lines that do not. I will refer to the latter as "simple" string lines.
 
 Lines that are "simple" string lines satisfy the following 4 properties:
 
@@ -74,62 +77,50 @@ Lines that are "simple" string lines satisfy the following 4 properties:
 * digits (0-9)
 * any characters in the playing legend, see [Creating a Playing Legend](#creating-a-playing-legend)
 
-*Note: whitespace is not allowed!*
+***Note: whitespace is not allowed!***
 
 **(3)** The last non-whitespace character must be a "|"  
 **(4)** Be at least 3 characters long, not counting the whitespace at either end.
 
-Lines that are not "simple" contain string data as represented by properties **1-4** above but with extraneous non-whitespace text on either end of it. This is different from extra text lines in input tab files which are discussed in the later section [Handling Extra Text](#handling-extra-text) Now, for some examples:
+Lines that are not "simple" contain string data as represented by properties **1-4** above but with extraneous non-whitespace text on either end of it.
 
-**Example:** Here is a simple string line. Note that it starts with "G" followed by a "|" (the 1st case of property **1**).
+> **Example:** Here is a simple string line. Note that it starts with "G" followed by a "|" (the 1st case of property **1**).
 
 ```
 G|---0---1---3|
 ```
 
-**Example:** Here is a simple string line. Note that it starts with a "|" (the 2nd case of property **1**). This example could appear in a tab file where the strings are only identified earlier on in the file.
+> **Example:** Here is a simple string line. Note that it starts with a "|" (the 2nd case of property **1**). This example could appear in a tab file where the strings are only identified earlier on in the file.
 
 ```
 |0--1--2|
 ```
 
-**Example:** Here is a simple string line. Note that it has some whitespace at the front. This is allowed.
+> **Example:** Here is a simple string line. Note that it has some whitespace at the front. This is allowed.
 
 ```
                 G|1--2|
 ```
 
-**Example:** Here is a string line that is not simple. Note that there is extra text present at the front.
+> **Example:** Here is a string line that is not simple. Note that there is extra text present at the front.
 
 ```
 This is for the first verse     G|1---3--2|
 ```
 
-**Example:** Here is a string line that is not simple. Note that there is extra text present at the front and back.
+> **Example:** Here is a string line that is not simple. Note that there is extra text present at the front and back.
 
 ```
 This is for the first verse     G|1---3--2|     Let the last note ring.
 ```
 
-**Example:** Here is a line that is neither type of string line. While it may appear to be a non-simple string line because it has extra text, the string data that matches properties **1-4** cannot be broken up by either whitespace or non-whitespace!
+> **Example:** Here is a line that is neither type of string line. While it may appear to be a non-simple string line because it has extra text, the string data that matches properties **1-4** cannot be broken up by either whitespace or non-whitespace!
 
 ```
 This is for the first verse     G|1--3--2 Let this note ring 3--|
 ```
 
-By default, string lines are assumed to be simple. If you have a file that has non-simple string lines please change the following line in the configuration file from:
-
-```
-SIMPLE_STRING_LINES=true
-```
-
-to the following:
-
-```
-SIMPLE_STRING_LINES=false
-```
-
-More on the configuration file is discussed below in the section [Using the Configuration File](#using-the-configuration-file).
+By default, string lines are assumed to not be simple. Therefore, if you wish to create an input file with no extra text (discussed more in [Handling Extra Text](#handling-extra-text)), that includes making all string lines "simple".
 
 **Note:** There will be a performance decrease if the file has non-simple string lines because the program must locate the ends (the bar lines) of the segment of string data.
 
@@ -216,26 +207,30 @@ Thus, before running the program, please check the number of spaces that are in 
 
 ### Handling Extra Text
 
-If the input file you have created includes extraneous text such as the song name at the top, a legend at the bottom, number of verses, etc., the program will still be able to parse the file for string lines and timing lines (assuming those were input correctly). However, there is a performance set-back and if you have found a tab file with no extra text or you wish to edit it so it has none, then change the configuration option "hasextra" in tabReader.config from "true" to "false", as so:
+If the input file you have created includes extraneous text either as their own lines (such as a song name at the top) or at the beginning or end of string lines, the program will still be able to parse the file for string lines and timing lines (assuming those were input correctly).However, there is a performance set-back as the program must identify the string data. By default, the configuration file has the has extra option as true since most tab files have extraneous text. However, if you have found a tab file with no extra text or you removed all the extraneous text from one, change the following setting in the configuration file from
 
 ```
 HAS_EXTRA=true
 ```
 
-This will provide a slight performance upgrade to the program, but can be ignored if you wish.
+to the following:
+
+```
+HAS_EXTRA=false
+```
 
 **Notes:**
 
+* You cannot have extra text in the middle of string lines. This was discussed previously in the section [Creating String Lines](#creating-string-lines).
 * If you set HAS_EXTRA to "false" and there is extra text in the input file, then errors could occur in the file reading.
 * Lines that are made up entirely of whitespace do not count as "extra" text.
-* To see the discussion of extra text at the beginning or end of string lines, go to [Creating String Lines](#creating-string-lines).
 * There *cannot* be extra text in timing lines. That is, text that does not appear in the timing legend (see section [Creating a Timing Legend](#creating-a-timing-legend)).
 
 ### Creating a Playing Legend
 
 It is common for tabs to provide specifications within the string lines of how to play notes (to bend, hammer-on, pull-off, etc.) using a legend. The legend configuration option as explained in the example below can be used to allow other characters to occur in string lines besides the ones listed explicitly in rule **(1)** in [Preparing an Input Tab File](#preparing-an-input-tab-file).
 
-**Example:** Suppose I have a tab with the following legend.
+> **Example:** Suppose I have a tab with the following legend.
 
 ```
 h - hammer-on
@@ -249,7 +244,9 @@ For this program, you do not have to provide what each letter means, but it does
 PLAYING_LEGEND=hpb
 ```
 
-*Observe:* I do not specify what h, p, and b mean, just that they will appear. Lastly, **note**, digits (0-9) and whitespace are not allowed to be in the legend.  
+*Observe:* I do not specify what h, p, and b mean, just that they will appear.
+
+**Note:** The playing legend can only be made up of either lowercase or uppercase alphabet characters.
 
 ### Creating a Timing Legend
 
@@ -291,7 +288,7 @@ py tabReader.py <input file name including extension>
 
 * If your input file is in a different directory, retrieve your input file's **full** path. Consider the following example for Windows:
 
-**Example:** Say my input tab file is located at "C:\\Users\\Chami\\Desktop\\test.txt". Then, I would run this command:
+> **Example:** Say my input tab file is located at "C:\\Users\\Chami\\Desktop\\test.txt". Then, I would run this command:
 
 ```
 py tabReader.py C:\Users\Chami\Desktop\test.txt
@@ -332,7 +329,7 @@ Observe that lines 2-9 provide a timeline of the execution of the program. If er
 
 It is important to realize however that the HTML file should also be checked carefully. The log file only reports *some* details of the program's execution and errors occurring in the program. If the user submitted incorrect input data, there are still circumstances where the program could execute correctly and still produce the wrong output. Consider the following.  
 
-**Example:** Suppose the user creates a tab file where every string line is formatted incorrectly. The program will read through and ignore each line, thinking that they are not supposed to be string lines. The program will then return an empty staff with no errors thrown. This is still not the correct output however.
+> **Example:** Suppose the user creates a tab file where every string line is formatted incorrectly. The program will read through and ignore each line, thinking that they are not supposed to be string lines. The program will then return an empty staff with no errors thrown. This is still not the correct output however.
 
 **Note:** If a logging error occurs, that will be printed to the console.
 
@@ -351,6 +348,9 @@ If interested, here are possible upgrades that would be in later versions of the
 * Using keys alongside the input file to output better sheet music that doesn't have to attach "#" to every sharped note.
 * Support for non-standard tuning (G, D, A, E).
 * A version for instruments other than a 4-string bass.
+* Compatibility with Python 2.x
+* Option to keep extra text in the output or not.
+* Ability to save extra text at the beginning and end of string lines.
 
 ## Built With
 

@@ -16,6 +16,7 @@ date: Summer 2019
 
 from exceptionsLibrary import TabException, MeasureException, TabConfigurationException, TabFileException
 from displayUtilLibrary import StaffString
+import regexUtilLibrary
 
 """
 This class represents a musical note in 2 ways. It is constructed given a guitar representation, that is a combination of a string and a fret. It then converts
@@ -87,8 +88,8 @@ class Note:
     """
     Returns a string representation of this Note. Meant for debugging.
     """
-    def __str__(self, other):
-        return "{0}-string, {1} fret".format(self.string, self.fret)
+    def __str__(self):
+        return "{0}-string, fret {1}".format(self.string, self.fret)
 
 """
 This class represents a slice of a Measure. A slice contains a group of Notes that are all played at the same time and for the same length. They are either all tied
@@ -118,7 +119,7 @@ class Slice:
         self.symbol = Song.NO_TIMING_SYMBOL
         self.length = Song.timingLegend[self.symbol][0]
         self.numDots = 0
-        self.nextDotLength = -1
+        self.nextDotLength = self.length/2
         self.maxStaffPos = -1
         self.minStaffPos = StaffString.STAFF_HEIGHT
         self.hasSharp = False
@@ -151,11 +152,17 @@ class Slice:
     Raises TabException if object's length has not been set by a call to setLength() (see below)
     """
     def applyDot(self):
-        if self.length == -1:
-            raise TabException("Length not set.")
+        if self.length == Song.timingLegend[Song.NO_TIMING_SYMBOL]:
+            raise TabException("Must have a timing length. Please use 'setLength()'.")
         self.numDots += 1
         self.length += self.nextDotLength
         self.nextDotLength /= 2
+
+    """
+    Returns number of timing dots that have been applied to this Slice.
+    """
+    def getDotCount(self):
+        return self.numDots
 
     """
     Checks if a length symbol is one which is found in the input file.
@@ -172,7 +179,7 @@ class Slice:
     params:
     symbol - a given length symbol
 
-    pre-condition: the time length associated with 'symbol' in 'Song.timingLegend' must be in (0, 1].
+    pre-condition: the time length associated with 'symbol' in 'Song.timingLegend' must be in [0, 1]. This is guaranteed by the definition of 'Song.timingLegend'.
 
     Raises a TabException if checkLengthSymbol(symbol) fails (see above doc.)
     """
@@ -187,6 +194,12 @@ class Slice:
     """
     def isEmpty(self):
         return len(self.notes)==0
+
+    """
+    Returns whether or not the Slice is a rest
+    """
+    def isRest(self):
+        return self.isEmpty() and self.length != Song.timingLegend[Song.NO_TIMING_SYMBOL][0]
 
     """
     Fills a provided StaffString with ledger lines above and below the bass clef based on the Slice's maximum and minimum staff positions. Thus, this method could
@@ -226,27 +239,34 @@ class Slice:
         SHARP = "\u266F"
         DOT = "\u00b7"
 
-        for note in self.notes:
-            str = Song.timingLegend[self.symbol][1]
-            fill = 1 # tracks how much of the StaffString's width has been filled. This is updated as sharps or dots are added to "str"
-            if note.isSharp():
-                str += SHARP
-                fill += 1
+        if self.isRest():
+            str = Song.timingLegend[self.symbol][2]
             for d in range(0, self.numDots):
                 str += DOT
-                fill += 1
-            # for what's left of str to be filled, add either "-" or " " depending on whether the note is on a line or space in the staff
-            if note.staffPos % 2 == 0:
-                str = "-"+str
-                fill += 1
-                for k in range(fill, s.width):
-                    str += "-"
-            else:
-                str = " "+str
-                fill += 1
-                for k in range(fill, s.width):
-                    str += " "
-            s.updateIndexToStr(StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos), str)
+            str = "-" + str + "-"
+            s.updateIndexToStr(StaffString.BASS_CLEF_BTM - 4, str)
+        else:
+            for note in self.notes:
+                str = Song.timingLegend[self.symbol][1]
+                fill = 1 # tracks how much of the StaffString's width has been filled. This is updated as sharps or dots are added to "str"
+                if note.isSharp():
+                    str += SHARP
+                    fill += 1
+                for d in range(0, self.numDots):
+                    str += DOT
+                    fill += 1
+                # for what's left of str to be filled, add either "-" or " " depending on whether the note is on a line or space in the staff
+                if note.staffPos % 2 == 0:
+                    str = "-"+str
+                    fill += 1
+                    for k in range(fill, s.width):
+                        str += "-"
+                else:
+                    str = " "+str
+                    fill += 1
+                    for k in range(fill, s.width):
+                        str += " "
+                s.updateIndexToStr(StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos), str)
 
     """
     If this Slice object marks the beginning or end of a tie, given a StaffString object, this method attaches the ties to the appropriate places in the StaffString.
@@ -299,7 +319,20 @@ class Slice:
     Returns a String representation of this Slice. This should only be used for debugging purposes.
     """
     def __str__(self):
-        return "-".join(map(str, self.notes))
+        return """
+        Notes: {0}
+        Symbol: {1}
+        Length: {2}
+        No. of dots: {3}
+        Next dot length: {4}
+        Max. staff pos.: {5}
+        Min. staff pos.: {6}
+        Has sharp: {7}
+        Tie begins: {8}
+        Tie ends: {9}
+        Is empty: {10}
+        Is rest: {11}
+        """.format(",".join(map(str, self.notes)), self.symbol, self.length, self.numDots, self.nextDotLength, self.maxStaffPos, self.minStaffPos, self.hasSharp, self.tieBegins, self.tieEnds, self.isEmpty(), self.isRest())
 
     """
     Ties this Slice to another Slice.
@@ -341,16 +374,6 @@ class Measure:
         self.length += slice.length
 
     """
-    Validates a Measure. That is, confirms its length is <= 1.
-
-    Raises a MeasureException if this Measure's length > 1.
-    """
-    def validate(self):
-        if self.length > 1 or self.length < 0:
-            raise MeasureException("creating a Measure.", "{0} is not a valid Measure length.".format(self.length))
-        # In the case where a Measure is made up of Slices with no timing info., the length of the Measure is 0.
-
-    """
     Returns a StaffString representation of this Measure given a gapsize which is used to determine how many "-" separate Slices in the Measure.
 
     params:
@@ -386,8 +409,11 @@ extraText - a list of character strings that hold extraneous text AND whitespace
 
 In addition, the class has some static variables:
 
-timingLegend - a legend that maps timing symbols to their timing lengths (decimal value in (0, 1]) and Unicode codes (see README for more)
-NO_TIMING_SYMBOL - key in unicode mapping that points to the unicode character to be placed on sheet music when timing for a Slice is not specified
+timingLegend - a legend that maps timing symbols to 3-element lists.
+    list[0] - symbol's associated timing length from [0, 1] (e.g. a quarter note has a timing length of 0.25, half note is 0.5, whole note is 1, etc.)
+    list[1] - symbol's associated note Unicode code (e.g. if the symbol is for a quarter note, this would be the Unicode code for a quarter note)
+    list[2] - symbol's associated rest Unicode code (e.g. if the symbol is for a quarter note, this would be the Unicode code for a quarter rest)
+NO_TIMING_SYMBOL - key in unicode mapping that points to the unicode character to be placed on sheet music when timing for a Slice is not specified (has a list with 'list[0] = 0')
 tieSymbol - character to be placed before a timing symbol that denotes the Slice with that timing is tied to the prior Slice
 dotSymbol - character to be placed (can be more than once) after a timing symbol that denotes a Slice's timing is dotted
 allowedTimingChars - characters allowed in timing lines, specified by 'TIMING_SYMBOLS' config. option
@@ -396,8 +422,8 @@ allowedPlayingChars - characters allowed in playing lines, specified by in part 
 class Song:
     NO_TIMING_SYMBOL = "\u2022"
     timingLegend = {NO_TIMING_SYMBOL : [0, "\u2022"]} # if the length is specified it must be greater than 0. Hence the no timing length mapping = 0
-    allowedTimingChars = set({" "})
-    allowedPlayingChars = set("-|0123456789")
+    allowedTimingChars = r' '
+    allowedPlayingChars = r'\d\-\|'
     tieSymbol = None
     dotSymbol = None
 
@@ -413,15 +439,15 @@ class Song:
     def loadTimingDataFromSymbolList(symbolList):
         Song.tieSymbol = symbolList[0]
         Song.dotSymbol = symbolList[1]
-        Song.timingLegend[symbolList[2]] = [1.0, "\U0001D15D"]
-        Song.timingLegend[symbolList[3]] = [0.5, "\U0001D15E"]
-        Song.timingLegend[symbolList[4]] = [0.25, "\U0001D15F"]
-        Song.timingLegend[symbolList[5]] = [0.125, "\U0001D160"]
-        Song.timingLegend[symbolList[6]] = [0.0625, "\U0001D161"]
-        Song.timingLegend[symbolList[7]] = [0.03125, "\U0001D162"]
-        Song.timingLegend[symbolList[8]] = [0.015625, "\U0001D163"]
-        Song.timingLegend[symbolList[9]] = [0.0078125, "\U0001D164"]
-        Song.allowedTimingChars = Song.allowedTimingChars.union(set(symbolList))
+        Song.timingLegend[symbolList[2]] = [1.0, "\U0001D15D", "\U0001D13B"]
+        Song.timingLegend[symbolList[3]] = [0.5, "\U0001D15E", "\U0001D13C"]
+        Song.timingLegend[symbolList[4]] = [0.25, "\U0001D15F", "\U0001D13D"]
+        Song.timingLegend[symbolList[5]] = [0.125, "\U0001D160", "\U0001D13E"]
+        Song.timingLegend[symbolList[6]] = [0.0625, "\U0001D161", "\U0001D13F"]
+        Song.timingLegend[symbolList[7]] = [0.03125, "\U0001D162", "\U0001D140"]
+        Song.timingLegend[symbolList[8]] = [0.015625, "\U0001D163", "\U0001D141"]
+        Song.timingLegend[symbolList[9]] = [0.0078125, "\U0001D164", "\U0001D142"]
+        Song.allowedTimingChars += regexUtilLibrary.escapeRegexSpecChrs(symbolList)
 
     """
     Loads playing legend info. from 'PLAYING_LEGEND' config. setting (see configUtilLibrary.py doc.).
@@ -430,7 +456,7 @@ class Song:
     playingLegend - a character string holding additional allowed chars. in string lines.
     """
     def loadPlayingLegend(playingLegend):
-        Song.allowedPlayingChars = Song.allowedPlayingChars.union(set(playingLegend))
+        Song.allowedPlayingChars += regexUtilLibrary.escapeRegexSpecChrs(playingLegend)
 
     """
     Constructs an empty Song object given a gap size and extra text setting (see class doc.).
@@ -452,7 +478,9 @@ class Song:
     Raises a MeasureException if measure.validate() fails (see this method's doc.)
     """
     def addMeasure(self, measure):
-        measure.validate()
+        if measure.length > 1 or measure.length < 0:
+            raise MeasureException("creating a Measure.", "{0} is not a valid Measure length. {1} Measure objects were created successfully.".format(measure.length, self.numMeasures()))
+        # In the case where a Measure is made up of Slices with no timing info., the length of the Measure is 0.
         self.measures.append(measure)
 
     """

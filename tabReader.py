@@ -45,7 +45,6 @@ def run(logger):
         rdr.readTabSpacing()
         rdr.readPlayingLegend()
         rdr.readHasExtra()
-        rdr.readSimpleString()
         timingSupplied = rdr.isTimingSupplied()
         Song.loadPlayingLegend(rdr.getPlayingLegend())
 
@@ -92,12 +91,6 @@ def run(logger):
             raise TabIOException("creating HTML file", str(i))
         logger.log("Tab-reading and sheet music generation was completed successfully in {0} seconds.".format(round(time.time()-start, 6)))
 
-    except TabFileException as t:
-        logger.log(msg=str(t), type=Logger.ERROR)
-    except TabConfigurationException as c:
-        logger.log(msg=str(c), type=Logger.ERROR)
-    except TabIOException as i:
-        logger.log(msg=str(i), type=Logger.ERROR)
     except TabException as e:
         logger.log(msg=str(e), type=Logger.ERROR)
 
@@ -112,5 +105,6 @@ except LoggingException as l:
     print(l)
 except Exception as e:
     logger.log(msg="An unexpected error occurred: " + str(e), type=Logger.ERROR)
+    print(traceback.format_exc())
 finally:
     logger.close()
