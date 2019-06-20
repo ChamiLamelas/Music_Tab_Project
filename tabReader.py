@@ -12,9 +12,9 @@ date: Summer 2019
 
 from exceptionsLibrary import TabException, TabFileException, MeasureException, TabConfigurationException, LoggingException, TabIOException
 from typeLibrary import Song
-from configUtilLibrary import ConfigReader
+from configUtilLibrary import ConfigReader, ConfigOptionID
 from logging import Logger
-from sys import argv
+import sys
 import tabParser
 import time
 
@@ -28,10 +28,10 @@ Raises a LoggingException if any of the logging operations used below fail
 """
 def run(logger):
     try:
-        if len(argv) < 2: # input tab file must be the 2nd prog. arg.
+        if len(sys.argv) < 2: # input tab file must be the 2nd prog. arg.
             raise TabException("No input file can be found.")
 
-        inFilename = argv[1]
+        inFilename = sys.argv[1]
         logger.log("Successfully located input file \"{0}\" in program arguments. Beginning tab-reading program configuration...".format(inFilename))
 
         rdr = ConfigReader()
@@ -45,16 +45,17 @@ def run(logger):
         rdr.readTabSpacing()
         rdr.readPlayingLegend()
         rdr.readHasExtra()
-        timingSupplied = rdr.isTimingSupplied()
-        Song.loadPlayingLegend(rdr.getPlayingLegend())
+        rdr.readKeepExtra()
+        timingSupplied = rdr.getSettingForOption(ConfigOptionID.TIMING_SUPPLIED)
+        Song.loadPlayingLegend(rdr.getSettingForOption(ConfigOptionID.PLAYING_LEGEND))
 
         if timingSupplied:
             rdr.readTimingSymbolsList()
-            Song.loadTimingDataFromSymbolList(rdr.getTimingSymbolsList())
+            Song.loadTimingDataFromSymbolList(rdr.getSettingForOption(ConfigOptionID.TIMING_SYMBOLS))
         # else: no point in reading these options, they aren't needed
 
-        song = Song(rdr.getGapsize())
-        loadedLines = [0, 0]
+        song = Song(rdr.getSettingForOption(ConfigOptionID.GAPSIZE))
+        loadedLines = [0, 0] # used in error reporting & is updated by 'tabParser.buildSong()'
 
         logger.log("The contents of the configuration file were read successfully. Beginning tab-reading...")
 
@@ -81,7 +82,7 @@ def run(logger):
             logStr += " and timing lines"
         logger.log(type=logType, msg=logStr + ". {0} Measure objects were created.".format(song.numMeasures()))
 
-        pathNoExt = argv[1][:-4] # get file path without 4-character extension & use it to create output filename
+        pathNoExt = inFilename[:-4] # get file path without 4-character extension & use it to create output filename
         outFilename = pathNoExt+"_staff.html"
         try: # try to write Song output to HTML file and raise a more appropriate exception than IOError to the user if one occurs
             with open(outFilename, "w+", encoding="utf-8") as outFile:
@@ -105,6 +106,5 @@ except LoggingException as l:
     print(l)
 except Exception as e:
     logger.log(msg="An unexpected error occurred: " + str(e), type=Logger.ERROR)
-    print(traceback.format_exc())
 finally:
     logger.close()

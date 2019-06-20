@@ -176,9 +176,10 @@ def buildSong(lines, song, rdr, loadedLines):
     eString = list() # list that holds data from e-string ("                                                           ")
 
     # load repeatedly called config. options into tmp. variables so internal checks by ConfigReader aren't done each timing the setting needs to be retrieved (see ConfigReader's doc.). This is safe as it is known that the config. options will not be edited in this method
-    hasTiming = rdr.isTimingSupplied()
-    hasExtra = rdr.isExtraTextPresent()
-    tabSpacing = rdr.getTabSpacing()
+    hasTiming = rdr.getSettingForOption(ConfigOptionID.TIMING_SUPPLIED)
+    hasExtra = rdr.getSettingForOption(ConfigOptionID.HAS_EXTRA)
+    tabSpacing = rdr.getSettingForOption(ConfigOptionID.TAB_SPACING)
+    keepExtra = rdr.getSettingForOption(ConfigOptionID.KEEP_EXTRA)
 
     if hasTiming and (len(Song.timingLegend) == 1 or not Song.tieSymbol or not Song.dotSymbol):
         raise TabConfigurationException(reason="program configuration failed. Timing legend was not loaded properly",line=ConfigOptionID.TIMING_SYMBOLS.value+1)
@@ -204,7 +205,8 @@ def buildSong(lines, song, rdr, loadedLines):
                     notes = list(sLine)
                     loadedLines[1] += 1
                 else: # otherwise, record it as extra text
-                    song.placeExtraLine(sLine)
+                    if keepExtra:
+                        song.placeExtraLine(sLine)
             else:
                 orig = len(sLine) # length of char. string before any changes
                 arr = list(sLine)
@@ -241,8 +243,9 @@ def buildSong(lines, song, rdr, loadedLines):
                             raise TabFileException("lists not loaded properly", "The lists holding the strings (lengths = {0}, {1}, {2}, {3}) and the list holding the timing ({4}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString), len(notes)), line=loadedLines[0])
                         lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
                     loadedLines[1] += 1
-                else: # Otherwise, record it as extra text
-                    song.placeExtraLine(sLine)
+                else: # Otherwise, record it as extra text if desired
+                    if keepExtra:
+                        song.placeExtraLine(sLine)
         else: # the user has specified that no timing was supplied -> read lines in groups of 4
             arr = list(sLine)
             orig = len(sLine) # len. of char. string before any changes
@@ -267,8 +270,9 @@ def buildSong(lines, song, rdr, loadedLines):
                         raise TabFileException("lists not loaded properly", "The lists holding strings (lengths = {0}, {1}, {2}, {3}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString)), line=loadedLines[0])
                     lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
                 loadedLines[1] += 1
-            else:
-                song.placeExtraLine(sLine)
+            else: # Otherwise, record it as extra text if desired
+                if keepExtra:
+                    song.placeExtraLine(sLine)
         loadedLines[0] += 1 # mark that a line has been read
 
     if (hasTiming and loadedLines[1] % 5 != 0) or (not hasTiming and loadedLines[1] % 4 != 0): # if timing was supplied, count should be a multiple of 5 and if not it should be a multiple of 4

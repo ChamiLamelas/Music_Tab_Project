@@ -39,11 +39,21 @@ This section will inform you of the necessary prerequisites to run this program 
 
 Furthermore, the sheet music output is an HTML file that is encoded in the UTF-8 character encodings. To read more about Unicode and character encodings, visit the [Wikipedia Article on Unicode](https://en.wikipedia.org/wiki/Unicode).
 
-**Note:** the installation and running of this program has been tested *only* on Windows 10 using Python 3.7.2 and Python 3.7.3. Other versions of Python 3 have not been tested, but should be compatible. However, Python 2 is **NOT** compatible.
+**Note:** the installation and running of this program has been tested *only* on Windows 10 using Python 3.7.2 and Python 3.7.3. Other versions of Python have not been tested.
 
 ### Prerequisites
 
-First, download a version of Python **3**. To do so, you can go to the [Python download page](https://www.python.org/downloads/). In the installation wizard, *make sure that Python is added to the system path* so that you can run the Python commands discussed in the section [Running the Program](#running-the-program).
+First, it is recommended to download one of the versions of Python mentioned above. To do so, you can go to the [Python download page](https://www.python.org/downloads/). In the installation wizard, *make sure that Python is added to the system path* so that you can run the Python commands discussed in the section [Running the Program](#running-the-program). To check that you have installed the correct version of Python *and* that has been added to your path, open your operating system's command line. To learn about what a command line is, here is a [Wikipedia Article](https://en.wikipedia.org/wiki/Command-line_interface) and a [Code Academy Tutorial](https://www.codecademy.com/learn/learn-the-command-line/modules/learn-the-command-line-navigation-u). Once you have opened your command line and assuming that you downloaded one of the versions mentioned above, type the following:
+
+```
+py --version
+```
+
+Here is the output I get running Python 3.7.2:
+
+```
+Python 3.7.2
+```
 
 Second, the program's output was tested in Mozilla Firefox 67.0 (64-bit) and Google Chrome Version 74.0.3729.169 (Official Build) (64-bit) on Windows Version 10.0.17763.503. So, it may be best to download one of those browsers. You can download the latest versions of these browsers below:
 
@@ -225,6 +235,179 @@ HAS_EXTRA=false
 * If you set HAS_EXTRA to "false" and there is extra text in the input file, then errors could occur in the file reading.
 * Lines that are made up entirely of whitespace do not count as "extra" text.
 * There *cannot* be extra text in timing lines. That is, text that does not appear in the timing legend (see section [Creating a Timing Legend](#creating-a-timing-legend)).
+* However, extra text may appear in between timing and string lines.
+
+> **Example:** Here, extra text is placed in between the last 2 string lines (representing the A and E strings).
+
+```
+  Q  Q  Q  S S E   Q  Q  Q  S S E   Q  Q  Q  S S E
+
+|----5--4--2-0---|----5--4--2-0---|----5-----------|
+
+|----------------|----------------|----------7-5---|
+
+|-3--------------|-3--------------|-3-----7--------|
+                                              Let this last note ring!
+|--------------3-|--------------3-|--------------3-|
+```
+
+> Here is the output. It will be used in the observation following the next example.
+
+```
+                                                Let this last note ring!
+        -𝅘𝅥-                               -𝅘𝅥-                               -𝅘𝅥-                         
+               𝅘𝅥                                 𝅘𝅥                                                      
+||-------------------𝅘𝅥𝅯-------------|-------------------𝅘𝅥𝅯-------------|-------------------𝅘𝅥𝅯-------------|
+||                         𝅘𝅥𝅯       |                         𝅘𝅥𝅯       |                         𝅘𝅥𝅯       |
+||---------------------------------|---------------------------------|---------------------------------|
+||                                 |                                 |             𝅘𝅥                   |
+||---------------------------------|---------------------------------|---------------------------------|
+|| 𝅘𝅥                               | 𝅘𝅥                               | 𝅘𝅥                               |
+||---------------------------------|---------------------------------|---------------------------------|
+||                                 |                                 |                                 |
+||-------------------------------𝅘𝅥𝅮-|-------------------------------𝅘𝅥𝅮-|-------------------------------𝅘𝅥𝅮-|
+```
+
+> **Example:** Here, extra text is placed in between the timing line and the first string line (representing the G-string).
+
+```
+   H      Q    E  E    H      H        Q  Q  Q  S E S   Q  Q  Q  E  S
+                                                          Play these last 4 notes muted!
+|-------------------|---------------||----5--4--2-0---|----5--4--2--0--||
+
+|-------------------|---------------||----------------|----------------||
+
+|--1------1----1----|---------------||-3--------------|-3--------------||
+
+|-----------------3-|--3------3-----||--------------3-|----------------||
+```
+
+> Here is the output that will be used in the following observation.
+
+```
+                                                        Play these last 4 notes muted!
+                                 -𝅘𝅥-                               -𝅘𝅥-                    
+                                        𝅘𝅥                                 𝅘𝅥               
+|------------------|------|-------------------𝅘𝅥𝅯-------------|-------------------𝅘𝅥𝅮·-------|
+|                  |      |                         𝅘𝅥𝅮       |                          𝅘𝅥𝅯 |
+|------------------|------|---------------------------------|----------------------------|
+|                  |      |                                 |                            |
+|------------------|------|---------------------------------|----------------------------|
+|                  |      | 𝅘𝅥                               | 𝅘𝅥                          |
+|------------------|------|---------------------------------|----------------------------|
+|_𝅗𝅥♯__𝅘𝅥♯__𝅘𝅥𝅮♯       |      |                                 |                            |
+|----------------𝅘𝅥𝅮_|_𝅗𝅥__𝅗𝅥-|-------------------------------𝅘𝅥𝅯-|----------------------------|
+```
+
+*Observe:* the 2 examples of extra text, "Let this last note ring!" and "Play these last 4 notes muted!", were moved from their original places in the input tab file when they appear in the output sheet music. This is for the following reasons.
+* The program interprets any extra text between string and timing lines as occurring "before" the measures that are represented in the segment of the input file taken up by the 4 string lines and the timing line.
+* Furthermore, the program places those sets of measures together as well in the sheet music to preserve the user's input formatting. Since extra text does not appear in sheet music, the program chooses to place the extra text before these measures. Hence, the text appears above the staff and is slightly offset because the sheet music has different spacing than the tab. 
+
+### Keeping Extra Text
+
+There is also a configuration option to specify whether or not you wish to keep the extra text in the input tab file. That is, the extra text that appears in the input tab will appear in the same places in the output HTML file. By default, this configuration option is set to true. However, if you wish to not keep the extra text, change:
+
+```
+KEEP_EXTRA=true
+```
+
+to the following:
+
+```
+KEEP_EXTRA=false
+```                
+
+**Notes:**
+
+* You cannot have ```KEEP_EXTRA=true``` if ```HAS_EXTRA=false```.
+* If you have set ```KEEP_EXTRA=false```, the output HTML will use the empty lines in the input tab file that are *not* between timing and string lines to place the rows of Measures. I will show this in an example.
+
+> **Example:** Suppose I have the following input tab file (with extra text) and I have set 'KEEP_EXTRA' to false. I have marked the empty lines for clarity.
+
+```
+PRESENCE OF THE LORD (Bassline)
+*EMPTY LINE*
+*EMPTY LINE*
+Gtr I (E A D G) - 'Ric Grech - Bass'
+*EMPTY LINE*
+ Intro
+*EMPTY LINE*
+  Q=60
+*EMPTY LINE*
+ 4/4
+*EMPTY LINE*
+  Gtr I
+*EMPTY LINE*
+  Q  Q  Q  S S E   Q  Q  Q  S S E   Q  Q  Q  S S E
+*EMPTY LINE*
+|----5--4--2-0---|----5--4--2-0---|----5-----------|
+*EMPTY LINE*
+|----------------|----------------|----------7-5---|
+*EMPTY LINE*
+|-3--------------|-3--------------|-3-----7--------|
+*EMPTY LINE*
+|--------------3-|--------------3-|--------------3-|
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+                   1st Verse
+*EMPTY LINE*
+  Q  Q  Q  S S E    Q..   S Q  S S S S   Q  +S  S E +S  S E +S  S E
+*EMPTY LINE*
+|----5--4--2-0---||--------------------|----------------------------|
+*EMPTY LINE*
+|----------------||--------------------|----------7-(7)-------------|
+*EMPTY LINE*
+|-3--------------||-3------------5---5-|--------7---------7-(7)-----|
+*EMPTY LINE*
+|--------------3-||-------3-3------7---|-5--(5)---------5-------5-3-|
+```
+
+*Observe:* There are **7** empty lines that occur before the first 3 measures that are not between timing and string lines. Next, there are 4 empty lines between the timing and string lines. Then, there are **6** empty lines between the first 3 measures and the second 3 measures. Lastly, there are 4 more empty lines between timing and string lines.
+
+> Now, here is the output HTML file. Again, I have marked the empty lines for clarity.
+
+```
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+        -𝅘𝅥-                               -𝅘𝅥-                               -𝅘𝅥-                         
+               𝅘𝅥                                 𝅘𝅥                                                      
+||-------------------𝅘𝅥𝅯-------------|-------------------𝅘𝅥𝅯-------------|-------------------𝅘𝅥𝅯-------------|
+||                         𝅘𝅥𝅯       |                         𝅘𝅥𝅯       |                         𝅘𝅥𝅯       |
+||---------------------------------|---------------------------------|---------------------------------|
+||                                 |                                 |             𝅘𝅥                   |
+||---------------------------------|---------------------------------|---------------------------------|
+|| 𝅘𝅥                               | 𝅘𝅥                               | 𝅘𝅥                               |
+||---------------------------------|---------------------------------|---------------------------------|
+||                                 |                                 |                                 |
+||-------------------------------𝅘𝅥𝅮-|-------------------------------𝅘𝅥𝅮-|-------------------------------𝅘𝅥𝅮-|
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+*EMPTY LINE*
+       -𝅘𝅥-                                                                                                                    
+              𝅘𝅥                                                                                                               
+|-------------------𝅘𝅥𝅯-------------|-----------------------------------------|----------------𝅘𝅥𝅮__𝅘𝅥𝅯----------------------------|
+|                         𝅘𝅥𝅯       |                                         |                                                |
+|---------------------------------|-----------------------------------------|------------------------------------------------|
+|                                 |                                         |          𝅘𝅥𝅯                    𝅘𝅥𝅮__𝅘𝅥𝅯             |
+|---------------------------------|---------------------𝄿-----𝅘𝅥𝅯-----------𝅘𝅥𝅯-|------------------------------------------------|
+| 𝅘𝅥                               | 𝅘𝅥··                                     |                                                |
+|---------------------------------|---------------------------------𝅘𝅥𝅯-------|------------------------------------------------|
+|                                 |                                         | 𝅘𝅥__𝅘𝅥𝅯                    𝅘𝅥𝅯              𝅘𝅥𝅯       |
+|-------------------------------𝅘𝅥𝅮-|---------𝅘𝅥𝅯-----𝅘𝅥-------------------------|----------------------------------------------𝅘𝅥𝅮-|
+```
+
+*Observe:* There are **7** empty lines before the first 3 measures of sheet music and then there are **6** more empty lines before the second 3 measures. The 2 sets of 4 empty lines between the timing and string lines in the input file are ignored, as well as the extra text "1st Verse" in the input tab file.
 
 ### Creating a Playing Legend
 
@@ -277,7 +460,7 @@ Here it can be seen that the tie symbol is 1st, then the dot symbol, followed by
 
 Once you have installed the required files and have a tab file, run the program using the following instructions:
 
-* Open your operating system's command line. To learn about what a command line is, here is a [Wikipedia Article](https://en.wikipedia.org/wiki/Command-line_interface) and a [Code Academy Tutorial](https://www.codecademy.com/learn/learn-the-command-line/modules/learn-the-command-line-navigation-u).
+* Open your operating system's command line; the same as in [Getting Started](#getting-started).
 * Navigate to the directory to where you have downloaded the source files. This is because the commands below assume "tabReader.py" is in the current working directory. This can be done using the "change directory" command as explained in the [Wikipedia Article on this Command](https://en.wikipedia.org/wiki/Cd_(command)).
 * Make sure that all your configuration settings have been updated as discussed above in the sections [Using the Configuration File](#using-the-configuration-file) and [Preparing an Input Tab File](#preparing-an-input-tab-file).
 * If your input file is in the *same* directory as the source files, run the following command:
@@ -309,7 +492,7 @@ Suppose the program executes on a test file successfully and the log file report
 **Note:** The program does not provide line numbers in the log file (1-9) nor does it include the roman numerals (i-iv). I have added these 2 sets of markers to make the explanation of the log output example below easier to follow.
 
 ```
-1) [2019-06-14 12:30:22.296435][> Log >] New Log Session started.
+1) [2019-06-14 12:30:22.296435][> Log >] New Log Session started by user Chami.
 2) [2019-06-14 12:30:22.296435][Info] Successfully located input file "C:\Users\Chami\Desktop\test.txt" in program arguments. Beginning tab-reading program configuration...
 3) [2019-06-14 12:30:22.298310][Info] Configuration file was found and loaded successfully.
 4) [2019-06-14 12:30:22.298310][Info] The contents of the configuration file were read successfully. Beginning tab-reading...
@@ -348,8 +531,6 @@ If interested, here are possible upgrades that would be in later versions of the
 * Using keys alongside the input file to output better sheet music that doesn't have to attach "#" to every sharped note.
 * Support for non-standard tuning (G, D, A, E).
 * A version for instruments other than a 4-string bass.
-* Compatibility with Python 2.x
-* Option to keep extra text in the output or not.
 * Ability to save extra text at the beginning and end of string lines.
 
 ## Built With

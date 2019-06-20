@@ -19,6 +19,7 @@ TAB_SPACING - line number and id of the option that signifies the number of spac
 HAS_EXTRA - line number and id of the option that signifies whether extra text exists in the file
 PLAYING_LEGEND - line number and id of the option that holds a legend of other characters that may appear in string lines (e.g. h for hammer-ons, p for pull-offs, b for bends, etc.)
 TIMING_SYMBOLS - line number and id of the option that holds a legend of the characters that will appear in timing lines (not inc. spaces)
+KEEP_EXTRA - line number and id of the option that specifies whether the user desires to keep extra text from the input file
 """
 class ConfigOptionID(Enum):
       TIMING_SUPPLIED = 0
@@ -27,6 +28,7 @@ class ConfigOptionID(Enum):
       HAS_EXTRA = 3
       PLAYING_LEGEND = 4
       TIMING_SYMBOLS = 5
+      KEEP_EXTRA = 6
 
 """
 This class is used to read the configuration file to be used by tabReader.py. The class stores the config. options' settings as attributes in addition to the list of lines read from the input config. file:
@@ -176,8 +178,7 @@ class ConfigReader:
                 raise ValueError()
         except ValueError: # see note on ValueError handling in getGapsize() above
             raise TabConfigurationException(reason="setting \"{0}\" for option \"{1}\" not recognized. Must be a non-negative integer.".format(setting, ConfigOptionID.TAB_SPACING.name), line=ConfigOptionID.TAB_SPACING.value+1)
-        else:
-            self.settings[ConfigOptionID.TAB_SPACING.value] = intSetting
+        self.settings[ConfigOptionID.TAB_SPACING.value] = intSetting
 
     """
     Reads True/False value of whether user has specified that the input text file has extra text. That is, notes or identifications of verses, etc. If the user removes all extra text that is all
@@ -218,6 +219,29 @@ class ConfigReader:
         self.settings[ConfigOptionID.TIMING_SYMBOLS.value] = setting
 
     """
+    Reads the True/False value of whether the user has specified that they wish to keep the extra text in the input file in the output HTML file.
+
+    pre-condition:
+    'readHasExtra()' must have already been called.
+
+    Raises TabConfigurationException if:
+        - 'readSetting()' fails for this option
+        - 'checkIfOptionRead()' fails for 'HAS_EXTRA'
+        - 'HAS_EXTRA' is false and 'KEEP_EXTRA' is read as true
+    """
+    def readKeepExtra(self):
+        self.checkIfOptionRead(ConfigOptionID.HAS_EXTRA)
+        setting = self.readSetting(ConfigOptionID.KEEP_EXTRA)
+        if setting == ConfigReader.SETTING_YES:
+            if not self.getSettingForOption(ConfigOptionID.HAS_EXTRA):
+                raise TabConfigurationException(reason="conflicting configuration options. Program cannot keep extra text when the user has specified that there is none.") # don't know where conflict is, raise exception at line=0
+            self.settings[ConfigOptionID.KEEP_EXTRA.value] = True
+        elif setting == ConfigReader.SETTING_NO:
+            self.settings[ConfigOptionID.KEEP_EXTRA.value] = False
+        else: # only 2 allowed settings are True or False
+            raise TabConfigurationException(reason="setting \"{0}\" for option \"{1}\" not recognized. Must be {2} or {3}".format(setting, ConfigOptionID.KEEP_EXTRA.name, ConfigReader.SETTING_YES, ConfigReader.SETTING_NO), line=ConfigOptionID.KEEP_EXTRA.value+1)
+
+    """
     Builds the default config file. WARNING: calling this method will overwrite any pre-existing file with the same path as this program's config file.
 
     Raises TabConfigurationException if the file could not be created
@@ -242,63 +266,16 @@ class ConfigReader:
             raise TabConfigurationException(reason="configuration option \"{0}\" has not been read. Please use the appropriate reading method.".format(id.name), line=id.value+1)
 
     """
-    Checks that the timing supplied option has been read before returning its value to the user. Use instead of directly accessing 'self.settings' for more suitable output.
+    Checks if a given option's setting has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
 
-    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
+    params:
+    option - a ConfigOptionID
+
+    Raises TabConfigurationException if 'checkIfOptionRead()' fails for 'option'
     """
-    def isTimingSupplied(self):
-        self.checkIfOptionRead(ConfigOptionID.TIMING_SUPPLIED)
-        return self.settings[ConfigOptionID.TIMING_SUPPLIED.value]
-
-    """
-    Checks that the gapsize option has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
-
-    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
-    """
-    def getGapsize(self):
-        self.checkIfOptionRead(ConfigOptionID.GAPSIZE)
-        return self.settings[ConfigOptionID.GAPSIZE.value]
-
-    """
-    Checks that the tab spacing option has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
-
-    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
-    """
-    def getTabSpacing(self):
-        self.checkIfOptionRead(ConfigOptionID.TAB_SPACING)
-        return self.settings[ConfigOptionID.TAB_SPACING.value]
-
-    """
-    Checks that (i) the extra text present option has been read and that (ii) there is no conflict with the setting for 'ConfigOptionID.SIMPLE_STRING_LINES' before returning its value to the user. Use instead of directly accessing 'self.settings'.
-
-    Note: for (ii) to be checked, the setting for 'ConfigOptionID.SIMPLE_STRING_LINES' must have also been read prior to calling this method.
-
-    Raises TabConfigurationException if:
-    - 'checkIfOptionRead()' fails for this option
-    - 'checkIfOptionRead()' fails for 'ConfigOptionID.HAS_EXTRA'
-    - the user has specified there is no extra text (the setting of 'ConfigOptionID.HAS_EXTRA' is 'ConfigReader.SETTING_NO') but there are non-simple string lines (the setting of 'ConfigOptionID.SIMPLE_STRING_LINES' is 'ConfigReader.SETTING_YES'). If there are non-simple string lines, both settings must be false.
-    """
-    def isExtraTextPresent(self):
-        self.checkIfOptionRead(ConfigOptionID.HAS_EXTRA)
-        return self.settings[ConfigOptionID.HAS_EXTRA.value]
-
-    """
-    Checks that the playing legend has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
-
-    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option.
-    """
-    def getPlayingLegend(self):
-        self.checkIfOptionRead(ConfigOptionID.PLAYING_LEGEND)
-        return self.settings[ConfigOptionID.PLAYING_LEGEND.value]
-
-    """
-    Checks that the timing symbol list has been read before returning its value to the user. Use instead of directly accessing 'self.settings'.
-
-    Raises TabConfigurationException if 'checkIfOptionRead()' fails for this option
-    """
-    def getTimingSymbolsList(self):
-        self.checkIfOptionRead(ConfigOptionID.TIMING_SYMBOLS)
-        return self.settings[ConfigOptionID.TIMING_SYMBOLS.value]
+    def getSettingForOption(self, option: ConfigOptionID):
+        self.checkIfOptionRead(option)
+        return self.settings[option.value]
 
 """
 Script to load default config. file text ('ConfigReader.defaultConfig')
@@ -314,8 +291,22 @@ defaultValues[ConfigOptionID.TAB_SPACING.value] = 8
 defaultValues[ConfigOptionID.HAS_EXTRA.value] = ConfigReader.SETTING_YES
 defaultValues[ConfigOptionID.PLAYING_LEGEND.value] = ""
 defaultValues[ConfigOptionID.TIMING_SYMBOLS.value] = "+.WHQESTFO"
+defaultValues[ConfigOptionID.KEEP_EXTRA.value] = ConfigReader.SETTING_YES
 
 # place it into the default file text static variable
-ConfigReader.defaultConfig = "# This is the configuration file for the tab reader program. \n# You can add line comments in the configuration file similarly to how it is done in Python: \n# (1) Placing a hashtag \"#\" at the beginning of each comment line. \n# (2) Placing a \"#\" at the end of configuration lines. The program will ignore any text following the hashtag."
+ConfigReader.defaultConfig = """
+# This is the configuration file for the tab reader program.
+# You can add line comments in the configuration file similarly to how it is done in Python:
+# (1) Placing a hashtag \"#\" at the beginning of each comment line.
+# (2) Placing a \"#\" at the end of configuration lines. The program will ignore any text following the hashtag.
+# Here is a summary of the various configuration options. For more detailed instructions, see the README.
+# '{0}' signifes whether timing is supplied (that is there is a line above the sets of 4 string lines with W's, H's, Q's. etc.)
+# '{1}' specifies the Song's gap size; that is, the number of "-" or " " between 2 notes.
+# '{2}' specifies the number of spaces in a tab in the user's text editor
+# '{3}' specifies whether extra text exists in the file
+# '{4}' holds a legend of other characters that may appear in string lines (e.g. h for hammer-ons, p for pull-offs, b for bends, etc.)
+# '{5}' holds a legend of the characters that will appear in timing lines (not inc. spaces)
+# '{6}' specifies whether the user desires to keep extra text from the input file
+""".format(ConfigOptionID.TIMING_SUPPLIED.name, ConfigOptionID.GAPSIZE.name, ConfigOptionID.TAB_SPACING.name, ConfigOptionID.HAS_EXTRA.name, ConfigOptionID.PLAYING_LEGEND.name, ConfigOptionID.TIMING_SYMBOLS.name, ConfigOptionID.KEEP_EXTRA.name)
 for id in ConfigOptionID:
     ConfigReader.defaultConfig += "\n" + id.name + "=" + str(defaultValues[id.value])

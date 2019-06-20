@@ -8,6 +8,8 @@ date: Summer 2019
 
 from datetime import datetime
 from exceptionsLibrary import LoggingException
+import sys
+import os
 
 """
 This class provides the logging ability described above in the file description. The class has 2 attributes:
@@ -68,7 +70,7 @@ class Logger:
         try: # try to log to the log file and wrap any IOError that occurs as a LoggingException
             time = str(datetime.now()) # mark date & time of log
             if self.newSession: # if this is the beginning of a new session, log that and mark the session is no longer new.
-                self.logFile.write("\n[{0}][{1}] New Log Session started.\n".format(time, Logger.LOG))
+                self.logFile.write("\n[{0}][{1}] New Log Session started by user {2}.\n".format(time, Logger.LOG, os.getlogin()))
                 self.newSession = False
             self.logFile.write("[{0}][{1}] {2}\n".format(time, type, msg)) # log the actual message with the provided type.
         except IOError as i:

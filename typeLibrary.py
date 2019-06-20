@@ -16,7 +16,7 @@ date: Summer 2019
 
 from exceptionsLibrary import TabException, MeasureException, TabConfigurationException, TabFileException
 from displayUtilLibrary import StaffString
-import regexUtilLibrary
+import re
 
 """
 This class represents a musical note in 2 ways. It is constructed given a guitar representation, that is a combination of a string and a fret. It then converts
@@ -404,7 +404,7 @@ class Measure:
 This class represents a Song, that is an ordered list of Measures. Song objects have the following attributes:
 
 measures - a list of Measures
-gapsize - The Song's gap size is the number of "-" or " " between 2 notes. The extra text option specifies whether an input tab file whose data is to be loaded into this Song object contains extraneous text that are not string lines, timing lines, or whitespace.
+gapsize - The Song's gap size is the number of "-" or " " between 2 notes.
 extraText - a list of character strings that hold extraneous text AND whitespace if the user has set the extra text config. option to True or JUST whitespace if the option is False. For a given index 'i', 'extraText[i]; holds the extra text that occurs after 'i' Measures of the Song.
 
 In addition, the class has some static variables:
@@ -447,7 +447,7 @@ class Song:
         Song.timingLegend[symbolList[7]] = [0.03125, "\U0001D162", "\U0001D140"]
         Song.timingLegend[symbolList[8]] = [0.015625, "\U0001D163", "\U0001D141"]
         Song.timingLegend[symbolList[9]] = [0.0078125, "\U0001D164", "\U0001D142"]
-        Song.allowedTimingChars += regexUtilLibrary.escapeRegexSpecChrs(symbolList)
+        Song.allowedTimingChars += re.escape(symbolList)
 
     """
     Loads playing legend info. from 'PLAYING_LEGEND' config. setting (see configUtilLibrary.py doc.).
@@ -456,7 +456,7 @@ class Song:
     playingLegend - a character string holding additional allowed chars. in string lines.
     """
     def loadPlayingLegend(playingLegend):
-        Song.allowedPlayingChars += regexUtilLibrary.escapeRegexSpecChrs(playingLegend)
+        Song.allowedPlayingChars += re.escape(playingLegend)
 
     """
     Constructs an empty Song object given a gap size and extra text setting (see class doc.).
@@ -509,10 +509,10 @@ class Song:
     Raises a TabFileException if the extra text in the file was not loaded properly.
     """
     def __str__(self):
-        if len(self.extraText) > self.numMeasures() + 1:
-            raise TabFileException("extra text loading failure", "The length of the extra text list ({0}) is not allowed. It must be less than or equal to {1}".format(len(self.extraText), self.numMeasures() + 1))
         out = list() # list which will be joined to form output character string
         s = StaffString("", restrict=False) # temp. var. that will build up groups of Measures that is added to out before being reset. Resets are split up by additions from 'self.extraText' to the output list
+        if len(self.extraText) > self.numMeasures() + 1:
+            raise TabFileException("extra text loading failure", "The length of the extra text list ({0}) is not allowed. It must be less than or equal to {1}".format(len(self.extraText), self.numMeasures() + 1))
         if len(self.extraText) > 0 and self.extraText[0] != "": # if there's extra text before 0 measures (i.e. at the beginning of the file), place that into the output first
             out.append(self.extraText[0])
         for i in range(0, self.numMeasures()): # for each Measure in the Song, add it to 's' and place them and any extra text that may follow to the output list before resetting 's'
@@ -531,6 +531,6 @@ class Song:
                 out.append(str(s))
                 out.append(self.extraText[i + 1])
                 s = StaffString("|")
-        if s.width > 1: # if there were any Measures that were not added in the above loop (because they weren't followed by extra text) add them
+        if s.width > 1: # if there were any Measures that were not added in the above loop (because they weren't followed by extra text) add them. Note, must be greater than 1 since 's' is initialized to a width of 1 b/c it is full of "|"
             out.append(str(s))
         return "\n".join(out)
