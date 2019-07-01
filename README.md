@@ -100,7 +100,7 @@ Lines that are "simple" string lines satisfy the following 4 properties:
 Lines that are not "simple" contain string data as represented by properties **1-4** above but with non-whitespace text at the beginning* and/or the end.
 
 **Note (\*):** The extraneous non-whitespace text at the beginning *cannot* contain a vertical bar character "|". Otherwise, the program will think that this is the beginning of a segment of string data. Vertical bars can be included in the extra
-text following the segment of string data however.
+text following the segment of string data and in lines that are meant to be entirely extra text (see later section [Handling Extra Text](#handling-extra-text)).
 
 > **Example:** Here is a simple string line. Note that it starts with "G" followed by a "|" (the 1st case of property **1**).
 
@@ -225,7 +225,7 @@ Thus, before running the program, please check the number of spaces that are in 
 
 ### Handling Extra Text
 
-If the input file you have created includes extraneous text either as their own lines (such as a song name at the top) or at the beginning or end of string lines, the program will still be able to parse the file for string lines and timing lines (assuming those were input correctly).However, there is a performance set-back as the program must identify the string data. By default, the configuration file has the has extra option as true since most tab files have extraneous text. However, if you have found a tab file with no extra text or you removed all the extraneous text from one, change the following setting in the configuration file from
+If the input file you have created includes extraneous text either as their own lines (such as a song name at the top) or at the beginning or end of string lines, the program will still be able to parse the file for string lines and timing lines (assuming those were input correctly). However, there is a performance set-back as the program must identify the string data. By default, the configuration file has the has extra option as true since most tab files have extraneous text. However, if you have found a tab file with no extra text or you removed all the extraneous text from one, change the following setting in the configuration file from
 
 ```
 HAS_EXTRA=true

@@ -121,7 +121,7 @@ class ConfigReader:
 
     Raises TabConfigurationException if checkConfigFileLoaded() failed, the config. file is too small and the option cannot be found, the option id in the file was wrong, or there was no "=" in the option line
     """
-    def readSetting(self, option: ConfigOptionID):
+    def readSetting(self, option):
         self.checkConfigFileLoaded()
         if option.value >= len(self.lines):
             raise TabConfigurationException(reason="config. file too small. Config. option \"{0}\" cannot be found because its id ({1}) is greater than the number of lines in the file ({2}).".format(option.name, option.value, len(lines)))
@@ -261,7 +261,7 @@ class ConfigReader:
 
     Raises TabConfigurationException as explained above.
     """
-    def checkIfOptionRead(self, id: ConfigOptionID):
+    def checkIfOptionRead(self, id):
         if self.settings[id.value] is None:
             raise TabConfigurationException(reason="configuration option \"{0}\" has not been read. Please use the appropriate reading method.".format(id.name), line=id.value+1)
 
@@ -273,7 +273,7 @@ class ConfigReader:
 
     Raises TabConfigurationException if 'checkIfOptionRead()' fails for 'option'
     """
-    def getSettingForOption(self, option: ConfigOptionID):
+    def getSettingForOption(self, option):
         self.checkIfOptionRead(option)
         return self.settings[option.value]
 

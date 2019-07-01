@@ -521,7 +521,7 @@ class Song:
 
     Raises TabException if 'measureHasFollowingExtraText()' fails.
     """
-    def placeExtraLine(self, line, measureCount, place: ExtraTextPlacementOption):
+    def placeExtraLine(self, line, measureCount, place):
         while measureCount >= len(self.extraText):
             self.extraText.append(["", "", ""])
         if place.value == ExtraTextPlacementOption.FOLLOWING_LINE.value:
@@ -545,7 +545,7 @@ class Song:
 
     If there is no extra text entry associated with that measure, then this returns None to differentiate with no extra text being associated with the measure (then it would return the empty char. string).
     """
-    def getMeasureExtraTextAt(self, measure, place: ExtraTextPlacementOption):
+    def getMeasureExtraTextAt(self, measure, place):
         if not self.measureHasExtraTextEntry(measure):
             return None
         return self.extraText[measure][place.value]
