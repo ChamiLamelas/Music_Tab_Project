@@ -101,7 +101,10 @@ Script that runs program. The 2nd program argument (this file's name is the 1st 
 try:
     logger = Logger()
     logger.open()
-    run(logger)
+    if sys.version_info < (3, 4):
+        logger.log(msg="Python version too old (must be at least 3.4). See previous log message for details.", type=Logger.ERROR)
+    else:
+        run(logger)
 except LoggingException as l:
     print(l)
 except Exception as e:

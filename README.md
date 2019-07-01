@@ -42,7 +42,9 @@ This section will inform you of the necessary prerequisites to run this program 
 
 Furthermore, the sheet music output is an HTML file that is encoded in the UTF-8 character encodings. To read more about Unicode and character encodings, visit the [Wikipedia Article on Unicode](https://en.wikipedia.org/wiki/Unicode).
 
-**Note:** the installation and running of this program has been tested *only* on Windows 10 using Python 3.7.2 and Python 3.7.3. Other versions of Python have not been tested.
+You *should* be able to use Python version **3.4** or later. However, the installation and running of this program has been tested **only** using Python 3.7.2 and Python 3.7.3.
+
+**Note:** This program has only been tested on Windows 10.
 
 ### Prerequisites
 
@@ -615,6 +617,7 @@ The reason that the staff output is displayed in an HTML file as opposed to an A
 
 If interested, here are possible upgrades that would be in later versions of the project.
 
+* Compatibility with versions of Python older than 3.4. That is, find a replacement for the various Enums used throughout the project.
 * Using keys alongside the input file to output better sheet music that doesn't have to attach "#" to every sharped note.
 * Support for non-standard tuning (G, D, A, E).
 * A version for instruments other than a 4-string bass.
