@@ -1,5 +1,5 @@
 """
-This file provides a library of music types (or classes) that are used by tabParser.py.
+This file provides a library of music types (or classes) that are used by parsingUtils.py.
 
 Types:
 
@@ -8,14 +8,15 @@ Slice - used by Measure
 Measure - used by Song
 Song - ultimately holds full conversion from tab to sheet music.
 
-In general, tabParser.py fills a Song with Slices and Measures and then gets the String representation of Song (which wraps a StaffString representation).
+In general, parsingUtils.py fills a Song with Slices and Measures and then gets the String representation of Song (which wraps a StaffString representation).
 
 author: Chami Lamelas
 date: Summer 2019
 """
 
 from exceptionsLibrary import TabException, MeasureException, TabConfigurationException, TabFileException
-from displayUtilLibrary import StaffString
+from displayUtils import StaffString
+from enum import Enum
 import re
 
 """
@@ -401,11 +402,30 @@ class Measure:
         return len(self.slices)==0
 
 """
+This class represents the set of options of where extra text can be placed.
+
+FOLLOWING_LINE - option that signfies extra text is on a line (with no string data) following a line with string data
+START_OF_LINE - option that signifies extra text is at the beginning of this line (before some string data)
+END_OF_LINE - option that signifies extra text is at the end of this line (after some string data)
+"""
+class ExtraTextPlacementOption(Enum):
+    FOLLOWING_LINE = 0
+    START_OF_LINE = 1
+    END_OF_LINE = 2
+
+"""
 This class represents a Song, that is an ordered list of Measures. Song objects have the following attributes:
 
 measures - a list of Measures
 gapsize - The Song's gap size is the number of "-" or " " between 2 notes.
-extraText - a list of character strings that hold extraneous text AND whitespace if the user has set the extra text config. option to True or JUST whitespace if the option is False. For a given index 'i', 'extraText[i]; holds the extra text that occurs after 'i' Measures of the Song.
+extraText - a list of lists that holds the extra text associated with the measures of this Song. For a given index i, 'extraText[i]', there is a 3-element list which is indexed using the Enum above 'ExtraTextPlacementOption'. That is,
+    - index 0 holds the character string of extra text that occurs after the (i+1)th measure
+    - index 1 holds the character string of extra text that occurs before the (i+1)th measure on the same line
+    - index 2 holds the character string of extra text that occurs after the (i+1)th measure on the same line
+Notes:
+    - for 'extraText[0]', there should be no text on the same line as the 0th measure. That is, indexes 1, 2 should be empty.
+    - However, for 'extraText[0]', there can be extra text following 0 measures, that is the extra text at the top of the input tab file (before the 1st measure)
+    - when HAS_EXTRA is 'false', then 'extraText' only holds lines of whitespace for the purpose of maintaining the spacing provided in the input tab file
 
 In addition, the class has some static variables:
 
@@ -418,8 +438,10 @@ tieSymbol - character to be placed before a timing symbol that denotes the Slice
 dotSymbol - character to be placed (can be more than once) after a timing symbol that denotes a Slice's timing is dotted
 allowedTimingChars - characters allowed in timing lines, specified by 'TIMING_SYMBOLS' config. option
 allowedPlayingChars - characters allowed in playing lines, specified by in part by 'PLAYING_LEGEND' config. option
+EXTRA_TEXT_DELIMITER - in the output sheet music, the extra text at the beginning (and the end) of input string lines is placed above (and below) the output sheet music separated by this delimiter.
 """
 class Song:
+    EXTRA_TEXT_DELIMITER = ";"
     NO_TIMING_SYMBOL = "\u2022"
     timingLegend = {NO_TIMING_SYMBOL : [0, "\u2022"]} # if the length is specified it must be greater than 0. Hence the no timing length mapping = 0
     allowedTimingChars = r' '
@@ -428,7 +450,7 @@ class Song:
     dotSymbol = None
 
     """
-    Loads timing data into static variables from 'TIMING_SYMBOLS' config. setting (see configUtilLibrary.py doc.).
+    Loads timing data into static variables from 'TIMING_SYMBOLS' config. setting (see configUtils.py doc.).
 
     params:
     symbolList - 10 character string made up of unique characters with the following properties:
@@ -450,7 +472,7 @@ class Song:
         Song.allowedTimingChars += re.escape(symbolList)
 
     """
-    Loads playing legend info. from 'PLAYING_LEGEND' config. setting (see configUtilLibrary.py doc.).
+    Loads playing legend info. from 'PLAYING_LEGEND' config. setting (see configUtils.py doc.).
 
     params:
     playingLegend - a character string holding additional allowed chars. in string lines.
@@ -490,18 +512,73 @@ class Song:
         return len(self.measures)
 
     """
-    Places an extra line into the Song's extra text storage.
+    Using a Song object's 'extraText' attribute, records a new line of extra text appropriately given a certain number of measures and the extra text's placement with respect to the measure.
 
     params:
-    line - a line of extra text or whitespace
+    line - a line of extra text
+    measureCount - no. of the measure to be associated with it
+    place - placement of line in relation to the measure
+
+    Raises TabException if 'measureHasFollowingExtraText()' fails.
     """
-    def placeExtraLine(self, line):
-        if self.numMeasures() >= len(self.extraText):
-            while self.numMeasures() > len(self.extraText):
-                self.extraText.append("")
-            self.extraText.append(line)
-        else:
-            self.extraText[self.numMeasures()] += "\n" + line
+    def placeExtraLine(self, line, measureCount, place: ExtraTextPlacementOption):
+        while measureCount >= len(self.extraText):
+            self.extraText.append(["", "", ""])
+        if place.value == ExtraTextPlacementOption.FOLLOWING_LINE.value:
+            if self.measureHasFollowingExtraText(measureCount):
+                self.extraText[measureCount][ExtraTextPlacementOption.FOLLOWING_LINE.value] += "\n"
+        self.extraText[measureCount][place.value] += line
+
+    """
+    Returns whether or not a given measure has an entry in 'extraText'. If measure < 0 or measure >= len(extraText), then there is no extra text entry associated with it. Review how extra text is indexed starting with an entry for 0 measures and can go up
+    to an index for the no. of measures + 1 (see Song class attributes doc.).
+    """
+    def measureHasExtraTextEntry(self, measure):
+        return measure >= 0 and measure < len(self.extraText)
+
+    """
+    Gets the extra text associated with a measure at a certain place (in relation to the measure).
+
+    params:
+    measure - which measure from which to retrieve the extra text from
+    place - the place in relation to the measure
+
+    If there is no extra text entry associated with that measure, then this returns None to differentiate with no extra text being associated with the measure (then it would return the empty char. string).
+    """
+    def getMeasureExtraTextAt(self, measure, place: ExtraTextPlacementOption):
+        if not self.measureHasExtraTextEntry(measure):
+            return None
+        return self.extraText[measure][place.value]
+
+    """
+    Returns whether or not a given measure has extra text following it.
+
+    params:
+    measure - the given measure
+    """
+    def measureHasFollowingExtraText(self, measure):
+        followingExtraText = self.getMeasureExtraTextAt(measure, ExtraTextPlacementOption.FOLLOWING_LINE)
+        return followingExtraText is not None and followingExtraText != ""
+
+    """
+    Returns whether or not a given measure has extra text before it, on the same line.
+
+    params:
+    measure - the given measure
+    """
+    def measureHasStartingExtraText(self, measure):
+        startingExtraText = self.getMeasureExtraTextAt(measure, ExtraTextPlacementOption.START_OF_LINE)
+        return startingExtraText is not None and startingExtraText != ""
+
+    """
+    Returns whether or not a given measure has extra text after it, on the same line.
+
+    params:
+    measure - the given measure
+    """
+    def measureHasEndingExtraText(self, measure):
+        endingExtraText = self.getMeasureExtraTextAt(measure, ExtraTextPlacementOption.END_OF_LINE)
+        return endingExtraText is not None and endingExtraText != ""
 
     """
     Returns a sheet music String representation of this Song using StaffString utility class and its String represenation.
@@ -512,10 +589,12 @@ class Song:
         out = list() # list which will be joined to form output character string
         s = StaffString("", restrict=False) # temp. var. that will build up groups of Measures that is added to out before being reset. Resets are split up by additions from 'self.extraText' to the output list
         if len(self.extraText) > self.numMeasures() + 1:
-            raise TabFileException("extra text loading failure", "The length of the extra text list ({0}) is not allowed. It must be less than or equal to {1}".format(len(self.extraText), self.numMeasures() + 1))
-        if len(self.extraText) > 0 and self.extraText[0] != "": # if there's extra text before 0 measures (i.e. at the beginning of the file), place that into the output first
-            out.append(self.extraText[0])
+            raise TabFileException("extra text loading failure", "The length of the extra text list ({0}) is not allowed. It must be less than or equal to {1}.".format(len(self.extraText), self.numMeasures() + 1))
+        if self.measureHasFollowingExtraText(0): # if there is any extra text and there is extra text before the 1st measure, add it
+            out.append(self.getMeasureExtraTextAt(0, ExtraTextPlacementOption.FOLLOWING_LINE) + "\n")
         for i in range(0, self.numMeasures()): # for each Measure in the Song, add it to 's' and place them and any extra text that may follow to the output list before resetting 's'
+            if self.measureHasStartingExtraText(i + 1): # if there is extra text before the (i+1)th measure on the same line, place it above the measure's sheet music (hence the "\n")
+                out.append(self.getMeasureExtraTextAt(i + 1, ExtraTextPlacementOption.START_OF_LINE) + "\n")
             if i == 0: # if this is the first Measure in the Song, put double bar lines at the beginning of the sheet music
                 s.union(StaffString("|"))
                 s.union(StaffString("|"))
@@ -524,13 +603,17 @@ class Song:
             s.union(StaffString("|"))
             if i == self.numMeasures() - 1: # if this is the last Measure in the Song, add an extra (ending) bar line.
                 s.union(StaffString("|"))
-             # if there is extra text to be added after 'i' Measures, then 'self.extraText[i + 1]' != "". This is because 'self.measures' uses 0-based indexing where at ith iteration in the for-loop, i+1 Measures have been visited
-             # if the above condition is true: add 's' to the output first, followed by the extra text, and then reset 's' for the next set of Measures to be added before the next time there is extra text to be added
+            # if there is extra text after the (i+1)th measure (either on the same line or on the following line): add 's' to the output, followed by a new line, than any extra text that may follow - either on the same line or after - separated by "\n"
              # note: this accounts for any extra text that follows all the Measures in the Song because the loop ends when 'i' = 'self.numMeasures()' - 1 and thus 'i' + 1 = 'self.numMeasures()' and thus, in 'self.extraText' denotes the extra text that follows all the Measures in this Song.
-            if i + 1 < len(self.extraText) and self.extraText[i + 1] != "":
-                out.append(str(s))
-                out.append(self.extraText[i + 1])
-                s = StaffString("|")
-        if s.width > 1: # if there were any Measures that were not added in the above loop (because they weren't followed by extra text) add them. Note, must be greater than 1 since 's' is initialized to a width of 1 b/c it is full of "|"
+            if self.measureHasEndingExtraText(i + 1) or self.measureHasFollowingExtraText(i + 1):
+                out.append(str(s) + "\n")
+                if self.measureHasEndingExtraText(i + 1):
+                    out.append(self.getMeasureExtraTextAt(i + 1, ExtraTextPlacementOption.END_OF_LINE) + "\n")
+                if self.measureHasFollowingExtraText(i + 1):
+                    out.append(self.getMeasureExtraTextAt(i + 1, ExtraTextPlacementOption.FOLLOWING_LINE) + "\n")
+                s = StaffString("|") # reset 's' for future measures being added
+        # if the last measure stored in 's' was not followed by some extra text, then it would not have been added to the output in the prev. loop. If 's.width'=1, then nothing was ever added to it (note: in the loop it is reset to a width of 1 b/c it's set to
+        # a measure line). In this case, add it to complete the output sheet music.
+        if s.width > 1:
             out.append(str(s))
-        return "\n".join(out)
+        return "".join(out)

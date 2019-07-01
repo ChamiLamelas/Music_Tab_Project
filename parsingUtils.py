@@ -5,9 +5,9 @@ author: Chami Lamelas
 date: Summer 2019
 """
 
-from typeLibrary import Song, Measure, Slice
+from typeLibrary import Song, Measure, Slice, ExtraTextPlacementOption
 from exceptionsLibrary import TabFileException, TabConfigurationException
-from configUtilLibrary import ConfigOptionID
+from configUtils import ConfigOptionID
 import re
 
 """
@@ -142,6 +142,25 @@ def updateSong(song, notes, gString, dString, aString, eString, lastSlice):
     return lastSlice # return updated last Slice to be added to 'song'
 
 """
+Helper method that is used to update 'startingText' and 'endingText' by 'buildSong()'. That is, as each string is parsed, more extra text may be encountered at either end of the string. This method is used to add that extra text to the approriate character
+string that collects the surrounding extra text.
+
+params:
+sameLineText - either 'startingText' or 'endingText' (and thus not None)
+str - a string to be added to 'sameLineText'
+
+Returns the updated 'sameLineText'
+"""
+def saveSameLineExtraText(sameLineText, str):
+    str = str.strip() # strip any surrounding whitespace from 'str' that may have been used in the input tab file as formatting. Following the README guidelines, the extra text will now be stored in a list separated by the following delimiter.
+    # note: this is not done for extra text that separates string & timing lines
+    if str != "":
+        if sameLineText != "": # if some extra text has been stored already, add the new extra text after the delimiter specified in the Song class.
+            sameLineText += Song.EXTRA_TEXT_DELIMITER
+        sameLineText += str
+    return sameLineText
+
+"""
 Builds a Song given the list of lines read from the input file and configuration data loaded by the method run(). At the end of
 this method, if it completes successfully, the data from the input tab file will have been parsed and stored appropriately in
 Song, Measure, and Slice objects.
@@ -184,6 +203,8 @@ def buildSong(lines, song, rdr, loadedLines):
     if hasTiming and (len(Song.timingLegend) == 1 or not Song.tieSymbol or not Song.dotSymbol):
         raise TabConfigurationException(reason="program configuration failed. Timing legend was not loaded properly",line=ConfigOptionID.TIMING_SYMBOLS.value+1)
 
+    startingText = "" # holds the extra text that occurs before - but on the same line as - the string data stored in notes, gString, dString, etc.
+    endingText = "" # holds the extra text that occurs after - but on the same line as - the string data stored in notes, gString, dString, etc.
     lastSlice = Slice() # holds last Slice to be added to the Song. This is kept updated by calls to 'updateSong()'
     while loadedLines[0] < len(lines): # iterates over lines to be read
          # (1) All whitespace should be stripped from the end of any line. In the case of empty lines, this will convey the same message as stripping both ends of the line of whitespace. For timing lines,
@@ -195,7 +216,7 @@ def buildSong(lines, song, rdr, loadedLines):
         if len(sLine) == 0: # 'sLine' was empty
             loadedLines[0] += 1
             if (hasTiming and loadedLines[1] % 5 == 0) or (not hasTiming and loadedLines[1] % 4 == 0): # this makes sure that only empty lines that are not in between string/timing lines are added to the extra text in 'song'
-                song.placeExtraLine(" ")
+                song.placeExtraLine(" ", song.numMeasures(), ExtraTextPlacementOption.FOLLOWING_LINE)  # since extra text lists are initialized to hold the empty string, make sure that an empty line is conveyed by at least 1 space or tab character. That way, it will actually be displayed in the output.
             # else: this is an empty line in between strings, ignore it
             continue
 
@@ -204,9 +225,9 @@ def buildSong(lines, song, rdr, loadedLines):
                 if isTimingLine(sLine):
                     notes = list(sLine)
                     loadedLines[1] += 1
-                else: # otherwise, record it as extra text
+                else: # otherwise, record it as a line of extra text (if desired by user) following the current number of measures in Song
                     if keepExtra:
-                        song.placeExtraLine(sLine)
+                        song.placeExtraLine(sLine, song.numMeasures(), ExtraTextPlacementOption.FOLLOWING_LINE)
             else:
                 orig = len(sLine) # length of char. string before any changes
                 arr = list(sLine)
@@ -214,7 +235,11 @@ def buildSong(lines, song, rdr, loadedLines):
                     match = extractStringData(sLine)
                     if match is not None: # match object was created successfully, so string data was found.
                         arr = list(match.group(2))
-                    # else: this line does not have string data as the match was either None or not created properly
+                        if keepExtra:
+                            # save the starting and ending extra text using helper 'saveSameLineExtraText()' by extracting capture group data from the regex match
+                            startingText = saveSameLineExtraText(startingText, match.group(1))
+                            endingText = saveSameLineExtraText(endingText, match.group(3))
+                        #  else: this line does not have string data as the match was either None or not created properly
                 else: # if there's no extra text, should only be whitespace at the start -> strip it
                     sLine = sLine.lstrip()
                 if not hasExtra or match is not None:
@@ -241,11 +266,27 @@ def buildSong(lines, song, rdr, loadedLines):
                         # check that the string lists and timing list all have the same length before trying to load the list data into music type objects. Otherwise, 'updateSong()' may run into an indexing error
                         if len(gString) != len(dString) or len(gString) != len(aString) or len (gString) != len(eString) or len(gString) != len(notes):
                             raise TabFileException("lists not loaded properly", "The lists holding the strings (lengths = {0}, {1}, {2}, {3}) and the list holding the timing ({4}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString), len(notes)), line=loadedLines[0])
+                        # if there has been separating text associated with the current set of measures, then it would have been stored in the extra text entry for the measure that would follow the current last measure (see doc. for where separating text
+                        # is added - some 15 lines or so below). If this is the case, add a newline character so that the starting text is placed below it.
+                        if song.measureHasStartingExtraText(song.numMeasures() + 1):
+                            startingText = "\n" + startingText
+                        # place all the collected preceding extra text to be be before the 1st measure of the set of measures to be added.
+                        # That is, before the measure that will come after the current last measure (indexed by Song.numMeasures() in Song.extraText)
+                        # for more - see doc. for 'placeExtraLine()'
+                        song.placeExtraLine(startingText, song.numMeasures() + 1, ExtraTextPlacementOption.START_OF_LINE)
+                        startingText = "" # reset it now that the set of measures will be added
                         lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
+                        # place all the collected preceding extra text to be be after the ;ast measure of the set of measures that were added.
+                        # That is, after after the current last measure (indexed by Song.numMeasures() in Song.extraText)
+                        # for more - see doc. for 'placeExtraLine()'
+                        song.placeExtraLine(endingText, song.numMeasures(), ExtraTextPlacementOption.END_OF_LINE)
+                        endingText = "" # reset it now that the set of measures have been added
                     loadedLines[1] += 1
-                else: # Otherwise, record it as extra text if desired
+                else: # otherwise, this is a line of extra text separating timing & string lines. Place it above the sheet music starting with 1st of the next set of measures to be added.
+                      # That is, before the measure tjat will come after the current last measure (indexed by Song.numMeasures() in Song.extraText) for more - see doc. for 'placeExtraLine()'
+                      # the set of measures will be added once 'updateSong()' is called after the G-string has been parsed.
                     if keepExtra:
-                        song.placeExtraLine(sLine)
+                        song.placeExtraLine(sLine, song.numMeasures() + 1, ExtraTextPlacementOption.START_OF_LINE)
         else: # the user has specified that no timing was supplied -> read lines in groups of 4
             arr = list(sLine)
             orig = len(sLine) # len. of char. string before any changes
@@ -253,6 +294,10 @@ def buildSong(lines, song, rdr, loadedLines):
                 match = extractStringData(sLine)
                 if match is not None: # match object was created successfully, so string data was found.
                     arr = list(match.group(2))
+                    if keepExtra:
+                        # save the starting and ending extra text using helper 'saveSameLineExtraText()' by extracting capture group data from the regex match
+                        startingText = saveSameLineExtraText(startingText, match.group(1))
+                        endingText = saveSameLineExtraText(endingText, match.group(3))
                 # else: this line does not have string data as the match was either None or not created properly
             else: # if there's no extra text, should only be whitespace at the start -> strip it
                 sLine = sLine.lstrip()
@@ -268,11 +313,27 @@ def buildSong(lines, song, rdr, loadedLines):
                     # check that the string lists have the same length before trying to load the list data into music type objects. Otherwise, 'updateSong()' may run into an indexing error
                     if len(gString) != len(dString) or len(gString) != len(aString) or len(gString) != len(eString):
                         raise TabFileException("lists not loaded properly", "The lists holding strings (lengths = {0}, {1}, {2}, {3}) must have the same length.".format(len(gString), len(dString), len(aString), len(eString)), line=loadedLines[0])
+                    # if there has been separating text associated with the current set of measures, then it would have been stored in the extra text entry for the measure that would follow the current last measure (see doc. for where separating text
+                    # is added - some 15 lines or so below). If this is the case, add a newline character so that the starting text is placed below it.
+                    if song.measureHasStartingExtraText(song.numMeasures() + 1):
+                        startingText = "\n" + startingText
+                    # place all the collected preceding extra text to be be before the 1st measure of the set of measures to be added.
+                    # That is, before the measure that will come after the current last measure (indexed by Song.numMeasures() in Song.extraText)
+                    # for more - see doc. for 'placeExtraLine()'
+                    song.placeExtraLine(startingText, song.numMeasures() + 1, ExtraTextPlacementOption.START_OF_LINE)
+                    startingText = "" # reset it now that the set of measures will be added
                     lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
+                    # place all the collected preceding extra text to be be after the ;ast measure of the set of measures that were added.
+                    # That is, after after the current last measure (indexed by Song.numMeasures() in Song.extraText)
+                    # for more - see doc. for 'placeExtraLine()'
+                    song.placeExtraLine(endingText, song.numMeasures(), ExtraTextPlacementOption.END_OF_LINE)
+                    endingText = "" # reset it now that the set of measures have been added
                 loadedLines[1] += 1
-            else: # Otherwise, record it as extra text if desired
+            else: # otherwise, this is a line of extra text separating timing & string lines. Place it above the sheet music starting with 1st of the next set of measures to be added.
+                  #That is, before the measure that will come after the current last measure (indexed by Song.numMeasures() in Song.extraText). for more - see doc. for 'placeExtraLine()'
+                  # the set of measures will be added once 'updateSong()' is called after the G-string has been parsed.
                 if keepExtra:
-                    song.placeExtraLine(sLine)
+                    song.placeExtraLine(sLine, song.numMeasures() + 1, ExtraTextPlacementOption.START_OF_LINE)
         loadedLines[0] += 1 # mark that a line has been read
 
     if (hasTiming and loadedLines[1] % 5 != 0) or (not hasTiming and loadedLines[1] % 4 != 0): # if timing was supplied, count should be a multiple of 5 and if not it should be a multiple of 4

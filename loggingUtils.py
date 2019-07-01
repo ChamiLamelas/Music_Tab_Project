@@ -8,7 +8,8 @@ date: Summer 2019
 
 from datetime import datetime
 from exceptionsLibrary import LoggingException
-import sys
+import getpass
+import platform
 import os
 
 """
@@ -28,7 +29,7 @@ WARNING - the warning logging type, somewhat visible; use when the user should b
 LOG - the log logging type, somewhat visible; use when the Logger class should be reporting something to the user
 """
 class Logger:
-    LOG_FILENAME = "tabReaderLog.log"
+    LOG_FILENAME = "tabReaderLOG.log"
     ERROR = ">> ERROR >>"
     INFO = "Info"
     WARNING = "> Warning >"
@@ -70,7 +71,10 @@ class Logger:
         try: # try to log to the log file and wrap any IOError that occurs as a LoggingException
             time = str(datetime.now()) # mark date & time of log
             if self.newSession: # if this is the beginning of a new session, log that and mark the session is no longer new.
-                self.logFile.write("\n[{0}][{1}] New Log Session started by user {2}.\n".format(time, Logger.LOG, os.getlogin()))
+                self.logFile.write("\n[{0}][{1}] New Log Session started with the following platform information:\n".format(time, Logger.LOG))
+                osInfo = platform.system() + " " + platform.version()
+                srcPath = os.path.dirname(os.path.realpath(__file__))
+                self.logFile.write("[{0}][{1}] User: {2}. Python version: {3}. OS Info.: {4}. Source directory: {5}.\n".format(time, Logger.LOG, getpass.getuser(), platform.python_version(), osInfo, srcPath))
                 self.newSession = False
             self.logFile.write("[{0}][{1}] {2}\n".format(time, type, msg)) # log the actual message with the provided type.
         except IOError as i:

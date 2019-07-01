@@ -8,8 +8,8 @@ The primary purpose of this project was to provide a program that takes an ASCII
 
 Here is an ordered outline of this file's contents:
 
-* [Getting Started](#getting-started)  
-        * [Prerequisites](#prerequisites)
+* [Getting Started](#getting-started)
+	* [Prerequisites](#prerequisites)
 	* [Installing the Program](#installing-the-program)
 * [Preparing an Input Tab File](#preparing-an-input-tab-file)
 	* [Creating String Lines](#creating-string-lines)
@@ -17,6 +17,9 @@ Here is an ordered outline of this file's contents:
 * [Using the Configuration File](#using-the-configuration-file)
 	* [Tab Characters in the Input File](#tab-characters-in-the-input-file)
 	* [Handling Extra Text](#handling-extra-text)
+		* [Warning about Multiple Instances of Extra Text Between String and Timing Lines](#warning-about-multiple-instances-of-extra-text-between-string-and-timing-lines)
+		* [Warning about Extra Text at the Ends of String Lines](#warning-about-extra-text-at-the-ends-of-string-lines)
+	* [Keeping Extra Text](#keeping-extra-text)
 	* [Creating a Playing Legend](#creating-a-playing-legend)
 	* [Creating a Timing Legend](#creating-a-timing-legend)
 * [Running the Program](#running-the-program)
@@ -60,9 +63,11 @@ Second, the program's output was tested in Mozilla Firefox 67.0 (64-bit) and Goo
 * [Firefox Download Page](https://www.mozilla.org/en-US/firefox/new/)
 * [Chrome Download Page](https://www.google.com/chrome/)
 
+Furthermore, since examples of program output are provided later in this file, it may be best for you to download one of these browsers before continuing.
+
 ### Installing the Program
 
-*All* of the Python source files (files with the ".py" extension) in the repository are necessary for the program to perform its intended purpose. To see what each one does, read the documentation at the top of each file. If you are interested, you can also read the documentation of each class and method in the source files.  
+*All* of the Python source files (files with the ".py" extension) in the repository are necessary for the program to perform its intended purpose. To see what each one does, read the documentation at the top of each file. If you are interested, you can also read the documentation of each class and method in the source files.
 
 Make sure that *every* file you download is put in the *same* folder. Therefore, it may be suitable to download the entire repository as a ZIP file. To do this click the green button "Clone or download" and select "Download ZIP" from the dropdown menu.
 
@@ -92,7 +97,10 @@ Lines that are "simple" string lines satisfy the following 4 properties:
 **(3)** The last non-whitespace character must be a "|"  
 **(4)** Be at least 3 characters long, not counting the whitespace at either end.
 
-Lines that are not "simple" contain string data as represented by properties **1-4** above but with extraneous non-whitespace text on either end of it.
+Lines that are not "simple" contain string data as represented by properties **1-4** above but with non-whitespace text at the beginning* and/or the end.
+
+**Note (\*):** The extraneous non-whitespace text at the beginning *cannot* contain a vertical bar character "|". Otherwise, the program will think that this is the beginning of a segment of string data. Vertical bars can be included in the extra
+text following the segment of string data however.
 
 > **Example:** Here is a simple string line. Note that it starts with "G" followed by a "|" (the 1st case of property **1**).
 
@@ -195,7 +203,7 @@ E|-8--|
 
 ## Using the Configuration File
 
-I have added this section before running the program because it is essential to understand how the configuration file - which is called "tabReader.config" - works (and how you may need to change it) before trying to run the program.
+I have added this section before running the program because it is essential to understand how the configuration file - which is called "tabReaderCONFIG.config" - works (and how you may need to change it) before trying to run the program.
 
 The configuration file is designed to provide the user more freedom in how the program behaves on input data. It may be best to examine the default configuration file before writing one on your own and make sure it has the same name as the default configuration file. If you are using Windows, I would recommend using WordPad if you do not have another text editor such as Atom or Notepad++ to open the config file, as Notepad doesn't display the line breaks in the default config file.
 
@@ -233,6 +241,7 @@ HAS_EXTRA=false
 
 * You cannot have extra text in the middle of string lines. This was discussed previously in the section [Creating String Lines](#creating-string-lines).
 * If you set HAS_EXTRA to "false" and there is extra text in the input file, then errors could occur in the file reading.
+* If you set HAS_EXTRA to "false" and TIMING_SUPPLIED to "false" when there is timing information in an input file, an error will most likely occur as this is a special case of the previous note. That is, the timing lines are treated as "extra text" by the program.  
 * Lines that are made up entirely of whitespace do not count as "extra" text.
 * There *cannot* be extra text in timing lines. That is, text that does not appear in the timing legend (see section [Creating a Timing Legend](#creating-a-timing-legend)).
 * However, extra text may appear in between timing and string lines.
@@ -301,7 +310,85 @@ HAS_EXTRA=false
 
 *Observe:* the 2 examples of extra text, "Let this last note ring!" and "Play these last 4 notes muted!", were moved from their original places in the input tab file when they appear in the output sheet music. This is for the following reasons.
 * The program interprets any extra text between string and timing lines as occurring "before" the measures that are represented in the segment of the input file taken up by the 4 string lines and the timing line.
-* Furthermore, the program places those sets of measures together as well in the sheet music to preserve the user's input formatting. Since extra text does not appear in sheet music, the program chooses to place the extra text before these measures. Hence, the text appears above the staff and is slightly offset because the sheet music has different spacing than the tab. 
+* Furthermore, the program places those sets of measures together as well in the sheet music to preserve the user's input formatting. Since extra text does not appear in sheet music, the program chooses to place the extra text before these measures. Hence, the text appears above the staff and is slightly offset because the sheet music has different spacing than the tab.
+
+#### Warning about Multiple Instances of Extra Text Between String and Timing Lines
+
+Putting extra text in between string and notes lines multiple times for the same group of measures will result in the extra text being placed in a line horizontally above the measures. Again, this is due to the fact that extra text cannot be placed within the output sheet music and is moved above it. This will be illustrated in the following example.
+
+> **Example:** Consider the following segment from a possible input tab file. It contains a few measures of string data with extra text between the timing and string lines.
+
+```
+  Q  Q  Q  S S E   Q  Q  Q  S S E   Q  Q  Q  S S E
+			      separating test #1
+|----5--4--2-0---|----5--4--2-0---|----5-----------|
+			      separating test #2
+|----------------|----------------|----------7-5---|
+			      separating test #3
+|-3--------------|-3--------------|-3-----7--------|
+			      separating test #4
+|--------------3-|--------------3-|--------------3-|      
+```
+
+> Here is the output that will be used in the following observation.
+
+```
+			       separating test #1                                separating test #2                                separating test #3                                separating test #4
+      -𝅘𝅥-                               -𝅘𝅥-                               -𝅘𝅥-                          
+	     𝅘𝅥                                 𝅘𝅥                                                       
+|-------------------𝅘𝅥𝅯-------------|-------------------𝅘𝅥𝅯-------------|-------------------𝅘𝅥𝅯-------------||
+|                         𝅘𝅥𝅯       |                         𝅘𝅥𝅯       |                         𝅘𝅥𝅯       ||
+|---------------------------------|---------------------------------|---------------------------------||
+|                                 |                                 |             𝅘𝅥                   ||
+|---------------------------------|---------------------------------|---------------------------------||
+| 𝅘𝅥                               | 𝅘𝅥                               | 𝅘𝅥                               ||
+|---------------------------------|---------------------------------|---------------------------------||
+|                                 |                                 |                                 ||
+|-------------------------------𝅘𝅥𝅮-|-------------------------------𝅘𝅥𝅮-|-------------------------------𝅘𝅥𝅮-||
+```
+
+*Observe:* Since the program cannot keep the extra text separating the timing and string lines on the staff, the extra text is placed above the staff. The whitespace used as formatting in the input tab file is kept.
+
+#### Warning about Extra Text at the Ends of String Lines
+
+While the program saves the extra text surrounding string data in a string line, it places it in the sheet music in a somewhat confusing manner. I will provide an example to illustrate the program behavior, and then explain it below.
+
+> **Example:** Consieder the following segment from a possible input tab file. It contains a few measures of string data with extra text on both ends.
+
+```
+				Q  Q  Q  S S E   Q  Q  Q  S S E   Q  Q  Q  S S E
+
+starting extra text #1        |----5--4--2-0---|----5--4--2-0---|----5-----------|      ending extra text #1
+
+starting extra text #2        |----------------|----------------|----------7-5---|      ending extra text #2
+
+starting extra text #3        |-3--------------|-3--------------|-3-----7--------|      ending extra text #3
+
+starting extra text #4        |--------------3-|--------------3-|--------------3-|      ending extra text #4
+```
+
+> Here is the output that will be used in the following observation.
+
+```
+starting extra text #1; starting extra text #2; starting extra text #3; starting extra text #4
+        -𝅘𝅥-                               -𝅘𝅥-                               -𝅘𝅥-                         
+               𝅘𝅥                                 𝅘𝅥                                                      
+||-------------------𝅘𝅥𝅯-------------|-------------------𝅘𝅥𝅯-------------|-------------------𝅘𝅥𝅯-------------|
+||                         𝅘𝅥𝅯       |                         𝅘𝅥𝅯       |                         𝅘𝅥𝅯       |
+||---------------------------------|---------------------------------|---------------------------------|
+||                                 |                                 |             𝅘𝅥                   |
+||---------------------------------|---------------------------------|---------------------------------|
+|| 𝅘𝅥                               | 𝅘𝅥                               | 𝅘𝅥                               |
+||---------------------------------|---------------------------------|---------------------------------|
+||                                 |                                 |                                 |
+||-------------------------------𝅘𝅥𝅮-|-------------------------------𝅘𝅥𝅮-|-------------------------------𝅘𝅥𝅮-|
+ending extra text #1; ending extra text #2; ending extra text #3; ending extra text #4
+```
+
+*Observe:* the extra text preceding the string lines in the example input (marked \"starting extra text #1-4\") is placed in a line separated by semi-colons directly above the output sheet music (observe all whitespace surrounding the extra text is stripped). Similarly, the extra text succeeding the string lines in the example input (marked \"ending extra text #1-4\") is placed in a line separated by semi-colons directly below the output sheet music. This is because the extra text would no longer align with the notes/string it aligns with in the input tab file since the notes have been converted into sheet music. The same logic applies to the ending text.
+
+> **Conclusion:** It may be best to avoid putting multiple instances of extra text between string and timing lines as well as placing text on the ends of the string lines to avoid confusion when the extra text is displayed in the output sheet music.
+
 
 ### Keeping Extra Text
 
@@ -485,25 +572,25 @@ After you run the program, an output HTML file encoded in the *UTF-8* character 
 
 ### Understanding The Log File
 
-After the first time you run the program, a log file called "tabReaderLog.log" will be generated and placed in the same folder. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from. All program output will be placed into this file unless the logging itself fails. It is important to note that the log file will display more information than just error messages of problems that arose in program execution. This will be explained using the following example:
+After the first time you run the program, a log file called "tabReaderLOG.log" will be generated and placed in the same folder. It is meant to be a more organized display of program output than simply printing to the console program you ran the program from. All program output will be placed into this file unless the logging itself fails. It is important to note that the log file will display more information than just error messages of problems that arose in program execution. This will be explained using the following example:
 
 Suppose the program executes on a test file successfully and the log file reports the following:
 
-**Note:** The program does not provide line numbers in the log file (1-9) nor does it include the roman numerals (i-iv). I have added these 2 sets of markers to make the explanation of the log output example below easier to follow.
+**Note:** The program does not provide line numbers in the log file (1-9) nor does it include the roman numerals (i-iv). I have added these 2 sets of markers to make the explanation of the log output example below easier to follow. Also, I have omitted the first 2 log session information lines and the times of each logged message from the example for clarity. However, these will be
+shown in your own version of the log file.
 
 ```
-1) [2019-06-14 12:30:22.296435][> Log >] New Log Session started by user Chami.
-2) [2019-06-14 12:30:22.296435][Info] Successfully located input file "C:\Users\Chami\Desktop\test.txt" in program arguments. Beginning tab-reading program configuration...
-3) [2019-06-14 12:30:22.298310][Info] Configuration file was found and loaded successfully.
-4) [2019-06-14 12:30:22.298310][Info] The contents of the configuration file were read successfully. Beginning tab-reading...
-5) [2019-06-14 12:30:22.310137][Info] Input tab file "C:\Users\Chami\Desktop\test.txt" was opened and closed successfully.
-6) [2019-06-14 12:30:22.349327][Info] Song building of the data from "C:\Users\Chami\Desktop\test.txt" finished without any parsing errors. 25 (ii) out of the 25 (i) loaded lines were read successfully.
-7) [2019-06-14 12:30:22.349327][Info] 10 (iii) out of the 25 (ii) read lines were interpreted as string lines. 6 (iv) Measure objects were created.
-8) [2019-06-14 12:30:22.513310][Info] Output HTML file "C:\Users\Chami\Desktop\test_staff.html" was opened and Song data was written successfully before closing.
-9) [2019-06-14 12:30:22.522899][Info] Tab-reading and sheet music generation was completed successfully in 0.203173 seconds.
+1) [Info] Successfully located input file "test_files\test2.txt" in program arguments. Beginning tab-reading program configuration...
+2) [Info] Configuration file was found and loaded successfully.
+3) [Info] The contents of the configuration file were read successfully. Beginning tab-reading...
+4) [Info] Input tab file "test_files\test2.txt" was opened and closed successfully.
+5) [Info] Song building of the data from "C:\Users\Chami\Desktop\test.txt" finished without any parsing errors. 25 (ii) out of the 25 (i) loaded lines were read successfully.
+6) [Info] 10 (iii) out of the 25 (ii) read lines were interpreted as string lines. 6 (iv) Measure objects were created.
+7) [Info] Output HTML file "C:\Users\Chami\Desktop\test_staff.html" was opened and Song data was written successfully before closing.
+8) [Info] Tab-reading and sheet music generation was completed successfully in 0.203173 seconds.
 ```
 
-Observe that lines 2-9 provide a timeline of the execution of the program. If error messages were to occur after some of these lines, it provides you with an easier way to diagnose the problem. That is, you will know which parts of the program executed successfully. However, lines 6 and 7 provide a little more than that. The program stores the input data by parsing the input tab file and then organizing it into a set of new structures or objects (details on the objects' implementation can be found in typeLibrary.py). If an explicit error is encountered in this process, then an error message would appear after line 5 above. If no error occurs, then you will see 2 lines similar to line 6 and 7 above. These lines tell you a few things:
+Observe that these lines provide a timeline of the execution of the program. If error messages were to occur after some of these lines, it provides you with an easier way to diagnose the problem. That is, you will know which parts of the program executed successfully. However, lines 5 and 6 provide a little more than that. The program stores the input data by parsing the input tab file and then organizing it into a set of new structures or objects (details on the objects' implementation can be found in typeLibrary.py). If an explicit error is encountered in this process, then an error message would appear after line 4 above. If no error occurs, then you will see 2 lines similar to line 5 and 6 above. These lines tell you a few things:
 
 * How many lines were loaded from the input tab file. This is denoted as (i). In this example, it is equal to 25. This is useful for telling you whether the entire file was read properly.
 * How many lines were parsed from the set of loaded lines. This is denoted as (ii). In this example, it is equal to 25 (as it should be if the program was successful) and is denoted as (ii). This is useful for telling you whether the program missed some lines.
@@ -514,7 +601,7 @@ It is important to realize however that the HTML file should also be checked car
 
 > **Example:** Suppose the user creates a tab file where every string line is formatted incorrectly. The program will read through and ignore each line, thinking that they are not supposed to be string lines. The program will then return an empty staff with no errors thrown. This is still not the correct output however.
 
-**Note:** If a logging error occurs, that will be printed to the console.
+**Note:** If an error occurs in the logging process, its information will be printed to the console.
 
 ### Note about Cygwin
 
@@ -531,7 +618,8 @@ If interested, here are possible upgrades that would be in later versions of the
 * Using keys alongside the input file to output better sheet music that doesn't have to attach "#" to every sharped note.
 * Support for non-standard tuning (G, D, A, E).
 * A version for instruments other than a 4-string bass.
-* Ability to save extra text at the beginning and end of string lines.
+* Saving the spacing between notes from the user's input tablature in the output sheet music representation. This would also better improve the placement of extra text in the output sheet music.
+* Improving the output sheet music's spacing. That is, each line in the staff is actually the same length. Could possibly done using HTML tables.
 
 ## Built With
 

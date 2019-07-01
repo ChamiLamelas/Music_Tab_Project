@@ -110,10 +110,10 @@ class StaffString:
         self.buf[index] = str
 
     """
-    Concatenates 2 StaffStrings horizontally.
+    Concatenates 2 StaffStrings horizontally. Take note of the order of concatenation below!
 
     params:
-    other - another StaffString
+    other - another StaffString. The contents of 'other' will be placed after the contents of this StaffString and then that combination will be put into this StaffString.
     """
     def union(self, other):
         if other is None:
@@ -145,7 +145,7 @@ class StaffString:
         j = 0
         while j < StaffString.BASS_CLEF_TOP and self.rowIsEmpty(j):
             j += 1
-        lastNewLine = -1 # tracks the index of the last detected newline column (note - newline characters will only appear in columns due to StaffString.newLineStaffString)
+        lastNewLine = -1 # tracks the index of the last detected newline column (note - newline characters will only appear in entire columns due to StaffString.newLineStaffString)
         w = 0 # iterates over the width of the StaffString
         while w < self.width:
             for k in range(j, i + 1): # Iterates over rows that have been chosen by trimming process

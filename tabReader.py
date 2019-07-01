@@ -1,10 +1,10 @@
 """
 This file runs the tab reading program, that is:
 
-(1) Reads the configuration file. (see configUtilLibrary.py)
-(2) Parses the input tab file into music type objects. (see tabParser.py, typeLibrary.py)
-(3) Takes the data from the type objects and displays it in an HTML file in sheet music representation. (see displayUtilLibrary.py)
-(4) Reports program status (including timing) and any errors in a LOG file. (see logging.py, exceptionsLibrary.py)
+(1) Reads the configuration file. (see configUtils.py)
+(2) Parses the input tab file into music type objects. (see parsingUtils.py, typeLibrary.py)
+(3) Takes the data from the type objects and displays it in an HTML file in sheet music representation. (see displayUtils.py)
+(4) Reports program status (including timing) and any errors in a LOG file. (see loggingUtils.py, exceptionsLibrary.py)
 
 author: Chami Lamelas
 date: Summer 2019
@@ -12,10 +12,10 @@ date: Summer 2019
 
 from exceptionsLibrary import TabException, TabFileException, MeasureException, TabConfigurationException, LoggingException, TabIOException
 from typeLibrary import Song
-from configUtilLibrary import ConfigReader, ConfigOptionID
-from logging import Logger
+from configUtils import ConfigReader, ConfigOptionID
+from loggingUtils import Logger
+from parsingUtils import buildSong
 import sys
-import tabParser
 import time
 
 """
@@ -55,7 +55,7 @@ def run(logger):
         # else: no point in reading these options, they aren't needed
 
         song = Song(rdr.getSettingForOption(ConfigOptionID.GAPSIZE))
-        loadedLines = [0, 0] # used in error reporting & is updated by 'tabParser.buildSong()'
+        loadedLines = [0, 0] # used in error reporting & is updated by 'parsingUtils.buildSong()'
 
         logger.log("The contents of the configuration file were read successfully. Beginning tab-reading...")
 
@@ -67,20 +67,20 @@ def run(logger):
             raise TabIOException("opening tab file", str(i))
 
         start = time.time()
-        tabParser.buildSong(lines, song, rdr, loadedLines)
+        buildSong(lines, song, rdr, loadedLines)
 
         # log a more detailed report of the result of Song building based on the data in 'loadedLines'
-        logger.log("Song building of the data from \"{0}\" finished without any parsing errors. {1} out of the {2} loaded lines were read successfully.".format(inFilename, loadedLines[0], len(lines)))
+        logger.log("Song building of the data from \"{0}\" finished without any parsing errors. {1} out of the {2} loaded line(s) were read successfully.".format(inFilename, loadedLines[0], len(lines)))
         logStr = ""
         logType = Logger.INFO
         if loadedLines[1] > 0:
-            logStr += "{0} out of the {1} read lines were interpreted as string lines".format(loadedLines[1], loadedLines[0])
+            logStr += "{0} out of the {1} read line(s) were interpreted as string line(s)".format(loadedLines[1], loadedLines[0])
         else:
             logType = Logger.WARNING
             logStr += "No lines were interpreted as string lines"
         if timingSupplied:
             logStr += " and timing lines"
-        logger.log(type=logType, msg=logStr + ". {0} Measure objects were created.".format(song.numMeasures()))
+        logger.log(type=logType, msg=logStr + ". {0} Measure object(s) were created.".format(song.numMeasures()))
 
         pathNoExt = inFilename[:-4] # get file path without 4-character extension & use it to create output filename
         outFilename = pathNoExt+"_staff.html"
@@ -90,7 +90,7 @@ def run(logger):
             logger.log("Output HTML file \"{0}\" was opened and Song data was written successfully before closing.".format(outFilename, song.numMeasures(), inFilename))
         except IOError as i:
             raise TabIOException("creating HTML file", str(i))
-        logger.log("Tab-reading and sheet music generation was completed successfully in {0} seconds.".format(round(time.time()-start, 6)))
+        logger.log("Tab-reading and sheet music generation was completed successfully in {0} second(s).".format(round(time.time()-start, 6)))
 
     except TabException as e:
         logger.log(msg=str(e), type=Logger.ERROR)

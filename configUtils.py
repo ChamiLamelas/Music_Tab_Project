@@ -50,7 +50,7 @@ defaultConfig - the text to be placed in the default config. file by 'buildDefau
 """
 class ConfigReader:
 
-    CONFIG_FILENAME = "tabReader.config"
+    CONFIG_FILENAME = "tabReaderCONFIG.config"
     COMMENT = "#"
     SETTING_YES = "true"
     SETTING_NO = "false"
