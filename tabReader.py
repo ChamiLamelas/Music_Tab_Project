@@ -10,12 +10,17 @@ author: Chami Lamelas
 date: Summer 2019
 """
 
-from exceptionsLibrary import TabException, TabFileException, MeasureException, TabConfigurationException, LoggingException, TabIOException
+import sys
+
+if sys.version_info < (3, 4):
+    sys.exit("Python version too old (must be at least 3.4).")
+# otherwise, continue with program.
+
+from loggingUtils import Logger
+from exceptionsLibrary import TabException, TabFileException, MeasureException, TabConfigurationException, TabIOException, LoggingException
 from typeLibrary import Song
 from configUtils import ConfigReader, ConfigOptionID
-from loggingUtils import Logger
 from parsingUtils import buildSong
-import sys
 import time
 
 """
@@ -96,15 +101,12 @@ def run(logger):
         logger.log(msg=str(e), type=Logger.ERROR)
 
 """
-Script that runs program. The 2nd program argument (this file's name is the 1st one) must be the input tab's file name.
+Script that runs the program. The 2nd program argument (this file's name is the 1st one) must be the input tab's file name.
 """
 try:
     logger = Logger()
     logger.open()
-    if sys.version_info < (3, 4):
-        logger.log(msg="Python version too old (must be at least 3.4). See previous log message for details.", type=Logger.ERROR)
-    else:
-        run(logger)
+    run(logger)
 except LoggingException as l:
     print(l)
 except Exception as e:

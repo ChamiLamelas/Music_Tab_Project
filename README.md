@@ -42,7 +42,7 @@ This section will inform you of the necessary prerequisites to run this program 
 
 Furthermore, the sheet music output is an HTML file that is encoded in the UTF-8 character encodings. To read more about Unicode and character encodings, visit the [Wikipedia Article on Unicode](https://en.wikipedia.org/wiki/Unicode).
 
-You *should* be able to use Python version **3.4** or later. However, the installation and running of this program has been tested **only** using Python 3.7.2 and Python 3.7.3.
+You *should* be able to use Python version **3.4** or later. However, the installation and running of this program has been tested **only** using Python 3.7.2 and Python 3.7.3. If your Python version is too old, the program will not try to run and an error will appear in the command line you use to run the program (see the later section [Running the Program](#running-the-program)).
 
 **Note:** This program has only been tested on Windows 10.
 
