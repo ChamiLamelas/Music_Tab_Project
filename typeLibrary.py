@@ -438,11 +438,13 @@ tieSymbol - character to be placed before a timing symbol that denotes the Slice
 dotSymbol - character to be placed (can be more than once) after a timing symbol that denotes a Slice's timing is dotted
 allowedTimingChars - characters allowed in timing lines, specified by 'TIMING_SYMBOLS' config. option
 allowedPlayingChars - characters allowed in playing lines, specified by in part by 'PLAYING_LEGEND' config. option
+STRING_NAMES - char. string of uppercase letters that holds all allowed string names 
 EXTRA_TEXT_DELIMITER - in the output sheet music, the extra text at the beginning (and the end) of input string lines is placed above (and below) the output sheet music separated by this delimiter.
 """
 class Song:
     EXTRA_TEXT_DELIMITER = ";"
     NO_TIMING_SYMBOL = "\u2022"
+    STRING_NAMES = "GDAE"
     timingLegend = {NO_TIMING_SYMBOL : [0, "\u2022"]} # if the length is specified it must be greater than 0. Hence the no timing length mapping = 0
     allowedTimingChars = r' '
     allowedPlayingChars = r'\d\-\|'
@@ -587,7 +589,7 @@ class Song:
     """
     def __str__(self):
         out = list() # list which will be joined to form output character string
-        s = StaffString("", restrict=False) # temp. var. that will build up groups of Measures that is added to out before being reset. Resets are split up by additions from 'self.extraText' to the output list
+        s = StaffString("|") # temp. var. that will build up groups of Measures that is added to out before being reset. Resets are split up by additions from 'self.extraText' to the output list
         if len(self.extraText) > self.numMeasures() + 1:
             raise TabFileException("extra text loading failure", "The length of the extra text list ({0}) is not allowed. It must be less than or equal to {1}.".format(len(self.extraText), self.numMeasures() + 1))
         if self.measureHasFollowingExtraText(0): # if there is any extra text and there is extra text before the 1st measure, add it
@@ -595,14 +597,9 @@ class Song:
         for i in range(0, self.numMeasures()): # for each Measure in the Song, add it to 's' and place them and any extra text that may follow to the output list before resetting 's'
             if self.measureHasStartingExtraText(i + 1): # if there is extra text before the (i+1)th measure on the same line, place it above the measure's sheet music (hence the "\n")
                 out.append(self.getMeasureExtraTextAt(i + 1, ExtraTextPlacementOption.START_OF_LINE) + "\n")
-            if i == 0: # if this is the first Measure in the Song, put double bar lines at the beginning of the sheet music
-                s.union(StaffString("|"))
-                s.union(StaffString("|"))
             # for any Measure in the Song, add its StaffString to 's' followed by a bar line
             s.union(self.measures[i].getStaffStr(self.gapsize))
             s.union(StaffString("|"))
-            if i == self.numMeasures() - 1: # if this is the last Measure in the Song, add an extra (ending) bar line.
-                s.union(StaffString("|"))
             # if there is extra text after the (i+1)th measure (either on the same line or on the following line): add 's' to the output, followed by a new line, than any extra text that may follow - either on the same line or after - separated by "\n"
              # note: this accounts for any extra text that follows all the Measures in the Song because the loop ends when 'i' = 'self.numMeasures()' - 1 and thus 'i' + 1 = 'self.numMeasures()' and thus, in 'self.extraText' denotes the extra text that follows all the Measures in this Song.
             if self.measureHasEndingExtraText(i + 1) or self.measureHasFollowingExtraText(i + 1):
@@ -612,8 +609,8 @@ class Song:
                 if self.measureHasFollowingExtraText(i + 1):
                     out.append(self.getMeasureExtraTextAt(i + 1, ExtraTextPlacementOption.FOLLOWING_LINE) + "\n")
                 s = StaffString("|") # reset 's' for future measures being added
-        # if the last measure stored in 's' was not followed by some extra text, then it would not have been added to the output in the prev. loop. If 's.width'=1, then nothing was ever added to it (note: in the loop it is reset to a width of 1 b/c it's set to
-        # a measure line). In this case, add it to complete the output sheet music.
+        # if the last measure stored in 's' was not followed by some extra text, then it would not have been added to the output in the prev. loop. If 's.width'=1, then nothing was ever added to it (note: it is always initialized to be a measure line & have a width=1).
+        # In this case, add it to complete the output sheet music.
         if s.width > 1:
             out.append(str(s))
         return "".join(out)

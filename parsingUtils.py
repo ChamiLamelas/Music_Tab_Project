@@ -142,6 +142,48 @@ def updateSong(song, notes, gString, dString, aString, eString, lastSlice):
     return lastSlice # return updated last Slice to be added to 'song'
 
 """
+Compares a given character with a string name from Song.STRING_NAMES.
+
+params:
+chr - character to compare with a string name
+name - a string name
+
+Raises TabException if 'name' is not in Song.STRING_NAMES
+Raises TabFileException if 'chr' != 'name'
+"""
+def checkChrToStringName(chr, name, line=0):
+    if name not in Song.STRING_NAMES:
+        raise TabException("Invalid string name argument '{0}'. Must be in {1}.".format(name, Song.STRING_NAMES))
+    if chr != name:
+        raise TabFileException("Invalid string name found.", "Unexpected string name '{0}' found in tab file. Expected string name {1}.".format(chr, name), line)
+
+"""
+Given the extra text from a beginning of a string line, removes the string name character from the end of it (if there is one), so that it is not saved as extra text in the output sheet music.
+
+params:
+text - a character string
+name - the name that it should be if there is one (should be taken from 'Song.STRING_NAMES')
+line - optional param. to help report error through 'checkChrToStringName()'
+
+The 'name' must be the last character in 'text' and must follow 1 of the following 2 conditions:
+(i) It is the only character in 'text'. This would be the case if the input tab line started with say "G" and was then followed by a "|" and some string data.
+(ii) It follows at least 1 whitespace character. This would be the case if the input tab line had some other text before the string data segment. Say: Verse 1 G|1---0|
+Here "Verse 1" is the only extra text and then there's a space between it and G.
+
+Raises a TabFileException if (i) and (ii) are met but the last character doesn't equal 'name' or checkChrToStringName() fails.
+"""
+def removeStringName(text, name, line=0):
+    if len(text) > 0: # check that there is actually some text captured from the beginning
+        last = text[-1:].upper() # get uppercase ver. of last char. in 'text'
+        if (len(text) > 1 and text[-2:-1].isspace()) or len(text) == 1: # checks properties (i)-(ii) from method doc.
+            if not last.isspace():
+                checkChrToStringName(last, name)
+                return text[:-1] # strip last char and return
+        # otherwise, 'last' is whitespace - ignore it
+    # no extra text at front, nothing to do to 'text'
+    return text
+
+"""
 Helper method that is used to update 'startingText' and 'endingText' by 'buildSong()'. That is, as each string is parsed, more extra text may be encountered at either end of the string. This method is used to add that extra text to the approriate character
 string that collects the surrounding extra text.
 
@@ -228,20 +270,22 @@ def buildSong(lines, song, rdr, loadedLines):
                 else: # otherwise, record it as a line of extra text (if desired by user) following the current number of measures in Song
                     if keepExtra:
                         song.placeExtraLine(sLine, song.numMeasures(), ExtraTextPlacementOption.FOLLOWING_LINE)
-            else:
+            else: # note at this point loadedLines[1] % 5 is in [1, 4]
                 orig = len(sLine) # length of char. string before any changes
-                arr = list(sLine)
+                arr = list()
                 if hasExtra: # if there is extra text, extract string data into a match object with 3 groups: group 1 is the extra text before the string data, group 2 is the string data, and group 3 is the extra text after the string data
                     match = extractStringData(sLine)
                     if match is not None: # match object was created successfully, so string data was found.
                         arr = list(match.group(2))
                         if keepExtra:
                             # save the starting and ending extra text using helper 'saveSameLineExtraText()' by extracting capture group data from the regex match
-                            startingText = saveSameLineExtraText(startingText, match.group(1))
+                            startingText = saveSameLineExtraText(startingText, removeStringName(match.group(1), Song.STRING_NAMES[(loadedLines[1] % 5)-1], loadedLines[0] + 1))
                             endingText = saveSameLineExtraText(endingText, match.group(3))
                         #  else: this line does not have string data as the match was either None or not created properly
                 else: # if there's no extra text, should only be whitespace at the start -> strip it
-                    sLine = sLine.lstrip()
+                    arr = list(sLine.lstrip())
+                    if arr[0].isalpha(): # if the first non-whitespace char. in 'arr' is in the alphabet, it must be the correct string name corresponding to the current string to be parsed.
+                        checkChrToStringName(arr[0].upper(), Song.STRING_NAMES[(loadedLines[1] % 5) - 1], loadedLines[0] + 1)
                 if not hasExtra or match is not None:
                     if loadedLines[1] % 5 == 1:
                         gString = arr
@@ -249,9 +293,8 @@ def buildSong(lines, song, rdr, loadedLines):
                         if hasExtra:
                             trim = len(match.group(1))
                         else:
-                            trim = len(gString) - orig
-                        for i in range(0, trim):
-                            del notes[0]
+                            trim = orig - len(gString)
+                        notes = notes[trim:] # using python 'list slicing', removes 'trim' spaces from the front of notes
                         # need to update the last addition to the notes list to add spaces to make the timing line of the input file have the same length as the g-string list below it
                         # otherwise, for input files where tabs may be on separate lines, the notes' timings would not be above the 1st digit of the fret of the note corresponding
                         # to it. This is what is needed in the helper method 'updateSong()' in order to properly parse the input data and load it into a 'song'
@@ -288,7 +331,7 @@ def buildSong(lines, song, rdr, loadedLines):
                     if keepExtra:
                         song.placeExtraLine(sLine, song.numMeasures() + 1, ExtraTextPlacementOption.START_OF_LINE)
         else: # the user has specified that no timing was supplied -> read lines in groups of 4
-            arr = list(sLine)
+            arr = list()
             orig = len(sLine) # len. of char. string before any changes
             if hasExtra: # if there is extra text, extract string data into a match object with 3 groups: group 1 is the extra text before the string data, group 2 is the string data, and group 3 is the extra text after the string data
                 match = extractStringData(sLine)
@@ -296,11 +339,13 @@ def buildSong(lines, song, rdr, loadedLines):
                     arr = list(match.group(2))
                     if keepExtra:
                         # save the starting and ending extra text using helper 'saveSameLineExtraText()' by extracting capture group data from the regex match
-                        startingText = saveSameLineExtraText(startingText, match.group(1))
+                        startingText = saveSameLineExtraText(startingText, removeStringName(match.group(1), Song.STRING_NAMES[loadedLines[1] % 4], loadedLines[0] + 1))
                         endingText = saveSameLineExtraText(endingText, match.group(3))
                 # else: this line does not have string data as the match was either None or not created properly
             else: # if there's no extra text, should only be whitespace at the start -> strip it
-                sLine = sLine.lstrip()
+                arr = list(sLine.lstrip())
+                if arr[0].isalpha(): # if the first non-whitespace char. in 'arr' is in the alphabet, it must be the correct string name corresponding to the current string to be parsed.
+                    checkChrToStringName(arr[0].upper(), Song.STRING_NAMES[loadedLines[1] % 4], loadedLines[0] + 1)
             if not hasExtra or match is not None:
                 if loadedLines[1] % 4 == 0:
                     gString = arr
@@ -329,11 +374,16 @@ def buildSong(lines, song, rdr, loadedLines):
                     song.placeExtraLine(endingText, song.numMeasures(), ExtraTextPlacementOption.END_OF_LINE)
                     endingText = "" # reset it now that the set of measures have been added
                 loadedLines[1] += 1
-            else: # otherwise, this is a line of extra text separating timing & string lines. Place it above the sheet music starting with 1st of the next set of measures to be added.
-                  #That is, before the measure that will come after the current last measure (indexed by Song.numMeasures() in Song.extraText). for more - see doc. for 'placeExtraLine()'
-                  # the set of measures will be added once 'updateSong()' is called after the G-string has been parsed.
-                if keepExtra:
-                    song.placeExtraLine(sLine, song.numMeasures() + 1, ExtraTextPlacementOption.START_OF_LINE)
+            else:
+                if keepExtra: # if the user desires to save extra text
+                    # if the g-string hasn't been found, this is a line of extra text before a set of measures. In this case, record it as a line of extra text following the current number of measures in Song
+                    if loadedLines[1] % 4 == 0:
+                        song.placeExtraLine(sLine, song.numMeasures(), ExtraTextPlacementOption.FOLLOWING_LINE)
+                    # otherwise, this is a line of extra text separating timing & string lines. Place it above the sheet music starting with 1st of the next set of measures to be added.
+                    # That is, before the measure that will come after the current last measure (indexed by Song.numMeasures() in Song.extraText). for more - see doc. for 'placeExtraLine()'
+                    # the set of measures will be added once 'updateSong()' is called after the G-string has been parsed.
+                    else:
+                        song.placeExtraLine(sLine, song.numMeasures() + 1, ExtraTextPlacementOption.START_OF_LINE)
         loadedLines[0] += 1 # mark that a line has been read
 
     if (hasTiming and loadedLines[1] % 5 != 0) or (not hasTiming and loadedLines[1] % 4 != 0): # if timing was supplied, count should be a multiple of 5 and if not it should be a multiple of 4

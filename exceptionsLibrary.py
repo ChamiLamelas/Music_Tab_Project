@@ -19,8 +19,6 @@ author: Chami Lamelas
 date: Summer 2019
 """
 
-README_LINK = "https://github.com/LiquidsShadow/Music_Tab_Project/blob/master/README.md"
-
 class TabException(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -38,7 +36,7 @@ class TabFileException(TabException):
         errorMsg = "Issue with the tab file: \"{0}\". Reason: {1}.".format(issue, reason)
         if line != TabFileException.DEFAULT_LINE:
             errorMsg += " Approximate line number: {0}.".format(line)
-        super().__init__(errorMsg + " Please review the input file and the guidelines outlined in the program README here {0}".format(README_LINK))
+        super().__init__(errorMsg)
 
 class TabIOException(TabException):
     def __init__(self, issue, reason):
@@ -47,7 +45,7 @@ class TabIOException(TabException):
 class TabConfigurationException(TabException):
     # first line in the file is line 1. Line=0 means source of problem couldn't be identified.
     def __init__(self, reason="not specified", line=0):
-        super().__init__("Program configuration failed. Error on line {0}. Reason: {1}. To reset the config. file see the README at {2}.".format(line, reason, README_LINK))
+        super().__init__("Program configuration failed. Error on line {0}. Reason: {1}. To reset the config. file see the README.".format(line, reason))
 
 class StaffException(TabException):
     def __init__(self, op, reason, str):

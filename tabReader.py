@@ -99,6 +99,7 @@ def run(logger):
 
     except TabException as e:
         logger.log(msg=str(e), type=Logger.ERROR)
+        logger.log(msg="If you need help, you can view the README here: https://github.com/LiquidsShadow/Music_Tab_Project/blob/master/README.md")
 
 """
 Script that runs the program. The 2nd program argument (this file's name is the 1st one) must be the input tab's file name.

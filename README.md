@@ -86,7 +86,32 @@ String lines are lines of the input tab file that represent strings of the bass.
 
 Lines that are "simple" string lines satisfy the following 4 properties:
 
-**(1)** The first non-whitespace character must be G, D, A, or E followed by a "|" or just be "|"  
+**(1)** The first non-whitespace character must either be a "|" or be from the set {G, g, D, d, A, a, E, e} followed by a "|".
+
+If you decide to provide string names from the set above, they will be checked by the program. That is, the program expects the strings to be ordered top to bottom from the G-string to the E-string like in the following example.
+
+> **Example:** Here is an example of top to bottom G->D->A->E ordering.
+
+```
+G|1---|
+D|-2--|
+A|--3-|
+E|---4|
+```
+
+Here is one possible example of string lines that have been ordered incorrectly.
+
+> **Example:** The program would flag these input string lines as invalid, because they do not follow G->D->A->E vertical order.
+
+```
+E|1---|
+A|-2--|
+D|--3-|
+G|---4|
+```
+
+**However**, if you do not provide the string names for each string, *no* check is done and it is assumed you have entered the strings with the G->D->A->E top to bottom ordering.
+
 **(2)** Following the first non-whitespace character, a sequence of only the following characters:
 
 * vertical bar: "|"
