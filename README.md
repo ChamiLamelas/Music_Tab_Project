@@ -198,7 +198,7 @@ A|----|
 E|-10-|
 ```
 
-The following would lead to an error:
+The following would cause the note to be read incorrectly. More specifically, the program would think that the note is a quarter note E. That is the E that is the E-string open.
 
 ```
     Q

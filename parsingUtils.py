@@ -102,18 +102,20 @@ def updateSong(song, notes, gString, dString, aString, eString, lastSlice):
             j = i + 1
             while j < len(notes) and notes[j] == Song.dotSymbol: # apply any following dots, as rests can be dotted
                 slice.applyDot()
-                j += 1
-        # else: no timing provided or notes[i] is a tie, dot, or space; do nothing
+                j += 1     
+        # otherwise, do nothing to the slice length 
 
-        # parse the Notes from all 4 string lists, and update 'skip1'
-        if parseNote(gString, i, slice, "G"):
-            skip1 = True
-        if parseNote(dString, i, slice, "D"):
-            skip1 = True
-        if parseNote(aString, i, slice, "A"):
-            skip1 = True
-        if parseNote(eString, i, slice, "E"):
-            skip1 = True
+        # parse the Notes from all 4 string lists, and update 'skip1' if notes[i] is a timing symbol or no timing was provided
+        if (notes and notes[i] in Song.timingLegend) or not notes: 
+            if parseNote(gString, i, slice, "G"):
+                skip1 = True
+            if parseNote(dString, i, slice, "D"):
+                skip1 = True
+            if parseNote(aString, i, slice, "A"):
+                skip1 = True
+            if parseNote(eString, i, slice, "E"):
+                skip1 = True
+        # otherwise, timing as provided and notes[i] isn't a timing symbol
 
         if i > 0 and notes and notes[i] in Song.timingLegend and notes[i - 1] == Song.tieSymbol: # only tie Slices after notes have been added, otherwise 'lastSlice' and 'slice' could have differing note counts as the count of 'slice' would be 0
             lastSlice.tie(slice)

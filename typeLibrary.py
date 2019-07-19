@@ -307,16 +307,6 @@ class Slice:
         return s
 
     """
-    Used when a measure line must be made where rows are skipped corresponding to the notes in this Slice. That is, rows that should have been "|"" are replaced with
-    "_" which are used in tying through a measure line.
-    """
-    def getCorrMeasureStaffStr(self):
-        out = StaffString("|")
-        for note in self.notes: # replace indices corresponding to Notes in the Slice with "_"
-            out.updateIndexToStr(StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos), "_")
-        return out
-
-    """
     Returns a String representation of this Slice. This should only be used for debugging purposes.
     """
     def __str__(self):
@@ -390,6 +380,15 @@ class Measure:
         return s
 
     """
+    Validates this Measure object by checking its length.
+
+    Raises a MeasureException if this object's length is != 1.
+    """
+    def validate(self):
+        if self.length != 1:
+            raise MeasureException("creating a Measure.", "{0} is not a valid Measure length. {1} Measure objects were created successfully.".format(measure.length, self.numMeasures()))
+
+    """
     Returns a String representation of this Measure. This is only to be used for debugging purposes.
     """
     def __str__(self):
@@ -401,6 +400,20 @@ class Measure:
     def isEmpty(self):
         return len(self.slices)==0
 
+    """
+    Used to create a measure bar line that would correctly follow this measure. That is, if this measure ends with a slice that is
+    the beginning of a tie then "_" are added to the measure line to show ties through it.
+    """
+    def getBarLine(self):
+        out = StaffString("|")
+        lastSlice = self.slices[len(self.slices)-1]
+        # if last slice is beginning of a tie replace indices corresponding to Notes in the Slice with "_"
+        if lastSlice.tieBegins: 
+            for note in lastSlice.notes: 
+                out.updateIndexToStr(StaffString.STAFF_HEIGHT - 1 - abs(note.staffPos), "_")
+        # else, no tie: don't edit bar line
+        return out
+        
 """
 This class represents the set of options of where extra text can be placed.
 
@@ -502,8 +515,7 @@ class Song:
     Raises a MeasureException if measure.validate() fails (see this method's doc.)
     """
     def addMeasure(self, measure):
-        if measure.length > 1 or measure.length < 0:
-            raise MeasureException("creating a Measure.", "{0} is not a valid Measure length. {1} Measure objects were created successfully.".format(measure.length, self.numMeasures()))
+        measure.validate();            
         # In the case where a Measure is made up of Slices with no timing info., the length of the Measure is 0.
         self.measures.append(measure)
 
@@ -597,9 +609,9 @@ class Song:
         for i in range(0, self.numMeasures()): # for each Measure in the Song, add it to 's' and place them and any extra text that may follow to the output list before resetting 's'
             if self.measureHasStartingExtraText(i + 1): # if there is extra text before the (i+1)th measure on the same line, place it above the measure's sheet music (hence the "\n")
                 out.append(self.getMeasureExtraTextAt(i + 1, ExtraTextPlacementOption.START_OF_LINE) + "\n")
-            # for any Measure in the Song, add its StaffString to 's' followed by a bar line
+            # for any Measure in the Song, add its StaffString to 's' followed by an appropriate bar line
             s.union(self.measures[i].getStaffStr(self.gapsize))
-            s.union(StaffString("|"))
+            s.union(self.measures[i].getBarLine())
             # if there is extra text after the (i+1)th measure (either on the same line or on the following line): add 's' to the output, followed by a new line, than any extra text that may follow - either on the same line or after - separated by "\n"
              # note: this accounts for any extra text that follows all the Measures in the Song because the loop ends when 'i' = 'self.numMeasures()' - 1 and thus 'i' + 1 = 'self.numMeasures()' and thus, in 'self.extraText' denotes the extra text that follows all the Measures in this Song.
             if self.measureHasEndingExtraText(i + 1) or self.measureHasFollowingExtraText(i + 1):
