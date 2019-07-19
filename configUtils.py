@@ -234,7 +234,7 @@ class ConfigReader:
         setting = self.readSetting(ConfigOptionID.KEEP_EXTRA)
         if setting == ConfigReader.SETTING_YES:
             if not self.getSettingForOption(ConfigOptionID.HAS_EXTRA):
-                raise TabConfigurationException(reason="conflicting configuration options. Program cannot keep extra text when the user has specified that there is none.") # don't know where conflict is, raise exception at line=0
+                raise TabConfigurationException(reason="conflicting configuration options. Program cannot keep extra text when the user has specified that there is none.") 
             self.settings[ConfigOptionID.KEEP_EXTRA.value] = True
         elif setting == ConfigReader.SETTING_NO:
             self.settings[ConfigOptionID.KEEP_EXTRA.value] = False

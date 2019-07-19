@@ -380,15 +380,6 @@ class Measure:
         return s
 
     """
-    Validates this Measure object by checking its length.
-
-    Raises a MeasureException if this object's length is != 1.
-    """
-    def validate(self):
-        if self.length != 1:
-            raise MeasureException("creating a Measure.", "{0} is not a valid Measure length. {1} Measure objects were created successfully.".format(measure.length, self.numMeasures()))
-
-    """
     Returns a String representation of this Measure. This is only to be used for debugging purposes.
     """
     def __str__(self):
@@ -515,7 +506,8 @@ class Song:
     Raises a MeasureException if measure.validate() fails (see this method's doc.)
     """
     def addMeasure(self, measure):
-        measure.validate();            
+        if measure.length != 1 and measure.length != Song.timingLegend[Song.NO_TIMING_SYMBOL][0]: # (0)
+            raise MeasureException("creating a Measure.", "{0} is not a valid Measure length (must be 1). {1} Measure objects have been created successfully.".format(measure.length, self.numMeasures()))          
         # In the case where a Measure is made up of Slices with no timing info., the length of the Measure is 0.
         self.measures.append(measure)
 

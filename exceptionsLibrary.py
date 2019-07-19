@@ -19,6 +19,8 @@ author: Chami Lamelas
 date: Summer 2019
 """
 
+UNIDENTIFIED_LINE_IN_FILE = -1 # for exceptions that report a file line no. as part of the error, use this to report that line couldn't be found
+
 class TabException(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -30,11 +32,12 @@ class MeasureException(TabException):
         super().__init__("Operation on Measure failed: {0}. Reason: {1}.".format(op, reason))
 
 class TabFileException(TabException):
-    DEFAULT_LINE = -1
-
-    def __init__(self, issue, reason, line=DEFAULT_LINE):
+    def __init__(self, issue = "unknown", reason="unknown", line=UNIDENTIFIED_LINE_IN_FILE):
+        self.issue = issue
+        self.reason = reason
+        self.line = line
         errorMsg = "Issue with the tab file: \"{0}\". Reason: {1}.".format(issue, reason)
-        if line != TabFileException.DEFAULT_LINE:
+        if line != UNIDENTIFIED_LINE_IN_FILE:
             errorMsg += " Approximate line number: {0}.".format(line)
         super().__init__(errorMsg)
 
@@ -42,10 +45,13 @@ class TabIOException(TabException):
     def __init__(self, issue, reason):
         super().__init__("I/O Error with \"{0}\". Reason: {1}.".format(issue, reason))
 
-class TabConfigurationException(TabException):
-    # first line in the file is line 1. Line=0 means source of problem couldn't be identified.
-    def __init__(self, reason="not specified", line=0):
-        super().__init__("Program configuration failed. Error on line {0}. Reason: {1}. To reset the config. file see the README.".format(line, reason))
+class TabConfigurationException(TabException):    
+    def __init__(self, reason="not specified", line=UNIDENTIFIED_LINE_IN_FILE):
+        errorMsg = "Program configuration failed. Reason: {0}.".format(reason)
+        if line != UNIDENTIFIED_LINE_IN_FILE:
+            errorMsg += " Approximate line number: {0}.".format(line)
+        errorMsg += " To reset the config. file, you can redownload it from the repository."
+        super().__init__(errorMsg)
 
 class StaffException(TabException):
     def __init__(self, op, reason, str):

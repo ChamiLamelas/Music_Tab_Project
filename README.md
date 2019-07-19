@@ -228,6 +228,10 @@ A|-10-|
 E|-8--|
 ```
 
+**Rests:** To indicate rests, place timing symbols above the string lines with no fret numbers below it. This is because fret numbers on string lines are interpreted as notes. This may be necessary for you to do because the program expects all measures to have a length of a whole note (or 1 in terms of the program) if timing is supplied.
+
+**WARNING:** If you put a timing symbol above a measure bar line, the program will *interpret that as a rest also* which you probably do not desire. 
+
 ## Using the Configuration File
 
 I have added this section before running the program because it is essential to understand how the configuration file - which is called "tabReaderCONFIG.config" - works (and how you may need to change it) before trying to run the program.
@@ -628,7 +632,9 @@ It is important to realize however that the HTML file should also be checked car
 
 > **Example:** Suppose the user creates a tab file where every string line is formatted incorrectly. The program will read through and ignore each line, thinking that they are not supposed to be string lines. The program will then return an empty staff with no errors thrown. This is still not the correct output however.
 
-**Note:** If an error occurs in the logging process, its information will be printed to the console.
+**Notes:** 
+* If an error occurs in the logging process, its information will be printed to the console.
+* At times the log file may include error messages regarding the input tab file that include a line number. This number is *not precise* due to how the input file is parsed, but it should give you a general idea of where to look for the source of the problem. If the program cannot identify where the error occurred at all, no line number will be provided.
 
 ### Note about Cygwin
 

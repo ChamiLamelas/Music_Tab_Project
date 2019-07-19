@@ -39,8 +39,8 @@ def extractStringData(line):
     return re.match(r'^([^\|]*)(\|[{0}]+\|)(.*)$'.format(Song.allowedPlayingChars), line)
 
 """
-Parses a given note. Here a note is not in the string-fret representation referenced in the type library classes, but at an index (or 2) in a string array. This
-method places this note into a Slice which wraps the conversion procedure (see its doc. in typeLibrary.py).
+Parses a given note. Here a note is represented as being at a given index in a given list for one of the four strings. 
+This method places this note into a Slice which wraps the conversion procedure (see its doc. in typeLibrary.py).
 
 params:
 string - an array representing a guitar string
@@ -48,22 +48,30 @@ idx - position of 1st digit of the fret on the strings
 slice - Slice to add the note to
 stringID - character ID of the guitar string
 
-Returns whether or not to skip the next index. This occurs in the case of 2-digit frets where both string[i] and string[i + 1] must be considered to determine the
-note properly.
+Returns a 2-element tuple t:
+    t[0] - a boolean value reporting whether or not the next index should be skipped. This occurs when a string list has a 2-digit
+    fret. Thus, the following index of the string list should not be looked at and though of as a separate note. Therefore, if
+    the user overlaps 2 notes that have 2-digit fret numbers, they will get an incorrect output. 
+    t[1] - a boolean value reporting whether or not a note was successfully parsed. That is, whether string[idx] (or string[idx]+string[idx+1])
+    represent a 1 (or 2) digit fret number. If string[idx] was a hyphen, bar line, or some other character from Song.playingLegend,
+    t[1] will be false. This is used by 'updateSong()' to report if the user has specified that timing is supplied but placed a note at
+    string[idx] with no timing symbol above it (at notes[idx]).
 
 Raises TabFileException if slice.addNote() fails.
 """
 def parseNote(string, idx, slice, stringID):
     skip = False
+    noteFound = False
     fret = string[idx]
     if fret.isdigit():
+        noteFound = True
         if idx < len(string) - 1 and string[idx + 1].isdigit(): # found a 2-digit fret number, update fret variable
             fret += string[idx + 1]
             skip = True # skip reading the next index in the string as its fret value is considered as part of this note
         # else: fret is only 1 digit, do nothing
         slice.addNote(stringID, fret)
     # else: fret is not a valid fret, it is a "-" or "|", do nothing
-    return skip
+    return (skip, noteFound)
 
 """
 Updates a Song object given a subset of the input data stored as a group of lists.
@@ -84,7 +92,9 @@ if timing has been provided, then Song.timingLegend, Song.tieSymbol, and Song.do
 Returns the last Slice to be added to 'song', replaces param. 'lastSlice'
 
 Raises TabConfigurationException if the Slice class' mapping from timing symbols to timing lengths was not loaded.
-Raises TabFileException if helper method parseNote() fails, Slice.setLength() fails, or an improper measure line was detected. For the former 2, see their docs.
+Raises TabFileException if helper method parseNote() fails, Slice.setLength() fails, an improper measure line was detected, or a note on a string line didn't correspond to a timing symbol (if timing was given).
+    - For the first 2, see their method doc. in typeLibrary.py
+    - For the last, a line no. isn't provided, so 'buildSong()' catches the exception and raises a new one with a line no. (using loadedLines[0], see 'buildSong()' method doc.)
 Raises TabException if Slice.applyDot() or Slice.tie() fail (see their doc.)
 Raises MeasureException if Song.addMeasure() fails (see its doc.)
 """
@@ -93,10 +103,10 @@ def updateSong(song, notes, gString, dString, aString, eString, lastSlice):
     i = 0
     while i < len(gString):
         slice = Slice() # Slice being built from the data at index 'i' in the lists
-        skip1 = False # determines whether a 2-digit fret number has been detected, and if so skip the next index in the lists
 
-        # at a given index 'i', if 'notes[i]' is a timing id but all the string lists at index 'i' hold hyphens, this indicates a rest. Therefore, by going through 'notes' and "looking below" at the string lists, rests can be accounted for
+        # at a given index 'i', if 'notes[i]' is a timing id but all the string lists at index 'i' hold non-digits, this indicates a rest. Therefore, by going through 'notes' and "looking below" at the string lists, rests can be accounted for
         # and the notes in the string lists can be added after if they are present (see 4 calls to 'parseNote()' below)
+        # WARNING: b/c of this, putting a timing symbol above a measure line will cause this to interpret it as a rest!
         if notes and notes[i] in Song.timingLegend:
             slice.setLength(notes[i])
             j = i + 1
@@ -104,17 +114,16 @@ def updateSong(song, notes, gString, dString, aString, eString, lastSlice):
                 slice.applyDot()
                 j += 1     
         # otherwise, do nothing to the slice length 
-
-        # parse the Notes from all 4 string lists, and update 'skip1' if notes[i] is a timing symbol or no timing was provided
-        if (notes and notes[i] in Song.timingLegend) or not notes: 
-            if parseNote(gString, i, slice, "G"):
-                skip1 = True
-            if parseNote(dString, i, slice, "D"):
-                skip1 = True
-            if parseNote(aString, i, slice, "A"):
-                skip1 = True
-            if parseNote(eString, i, slice, "E"):
-                skip1 = True
+      
+        gStrParseResult = parseNote(gString, i, slice, "G")
+        dStrParseResult = parseNote(dString, i, slice, "D")
+        aStrParseResult = parseNote(aString, i, slice, "A")
+        eStrParseResult = parseNote(eString, i, slice, "E")
+        
+        # if the user specified timing is supplied but a note is located on 1 of the 4 strings at an index in the string lists where no
+        # corresponding timing symbol has been supplied, raise an error 
+        if notes and notes[i] not in Song.timingLegend and (gStrParseResult[1] or dStrParseResult[1] or aStrParseResult[1] or eStrParseResult[1]):
+            raise TabFileException("improperly formatted note", "Timing was supplied but no timing symbol could be found at around column {0}".format(i))
         # otherwise, timing as provided and notes[i] isn't a timing symbol
 
         if i > 0 and notes and notes[i] in Song.timingLegend and notes[i - 1] == Song.tieSymbol: # only tie Slices after notes have been added, otherwise 'lastSlice' and 'slice' could have differing note counts as the count of 'slice' would be 0
@@ -127,7 +136,7 @@ def updateSong(song, notes, gString, dString, aString, eString, lastSlice):
             # the following 2 if-statements can be summarized as follows: if the string list entry at index 'i' is a measure line, then the entries at 'i' for all the other 3 string lists must also be a measure line. Otherwise, raise an error
             if gString[i] == "|" or dString[i] == "|" or aString == "|" or eString[i] == "|":
                 if gString[i] != "|" or dString[i] != "|" or aString[i] != "|" or eString[i] != "|":
-                    raise TabFileException("improper measure line detected", "Not all string lists have a \"|\" at the specified index.", line=i)
+                    raise TabFileException("improper measure line detected", "Not all string lists have a \"|\" at around column {0}".format(i))
                 if not measure.isEmpty():
                     song.addMeasure(measure)
                     measure = Measure()
@@ -137,9 +146,10 @@ def updateSong(song, notes, gString, dString, aString, eString, lastSlice):
         # update 'i' accordingly with the knowledge that indexes with dots in 'notes' can be skipped (as there should be no notes below them) and can skip with a note with a double digit fret is encountered. See README for more info. on the latter case.
         if slice.getDotCount() > 0:
             i += slice.getDotCount()
-        elif skip1:
+        # if any one of the strings had a 2-digit fret, skip the next index (i) (more discussed in method doc. for 'parseNote()')
+        elif gStrParseResult[0] or dStrParseResult[0] or aStrParseResult[0] or eStrParseResult[0]:
             i += 2
-        else:
+        else: # fret was only 1 digit, thus the next index (i) must be processed (and not skipped)
             i += 1
     return lastSlice # return updated last Slice to be added to 'song'
 
@@ -320,7 +330,10 @@ def buildSong(lines, song, rdr, loadedLines):
                         # for more - see doc. for 'placeExtraLine()'
                         song.placeExtraLine(startingText, song.numMeasures() + 1, ExtraTextPlacementOption.START_OF_LINE)
                         startingText = "" # reset it now that the set of measures will be added
-                        lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
+                        try:
+                            lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
+                        except TabFileException as fe: # catch exception from 'updateSong()' and provide better info. to user by giving line no.
+                            raise TabFileException(fe.issue, fe.reason, line=loadedLines[0]+1)
                         # place all the collected preceding extra text to be be after the ;ast measure of the set of measures that were added.
                         # That is, after after the current last measure (indexed by Song.numMeasures() in Song.extraText)
                         # for more - see doc. for 'placeExtraLine()'
@@ -369,8 +382,11 @@ def buildSong(lines, song, rdr, loadedLines):
                     # for more - see doc. for 'placeExtraLine()'
                     song.placeExtraLine(startingText, song.numMeasures() + 1, ExtraTextPlacementOption.START_OF_LINE)
                     startingText = "" # reset it now that the set of measures will be added
-                    lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
-                    # place all the collected preceding extra text to be be after the ;ast measure of the set of measures that were added.
+                    try:
+                        lastSlice = updateSong(song, notes, gString, dString, aString, eString, lastSlice)
+                    except TabFileException as fe: 
+                        raise TabFileException(fe.issue, fe.reason, line=loadedLines[0]+1) # catch exception from 'updateSong()' and provide better info. to user by giving line no.
+                    # place all the collected preceding extra text to be be after the last measure of the set of measures that were added.
                     # That is, after after the current last measure (indexed by Song.numMeasures() in Song.extraText)
                     # for more - see doc. for 'placeExtraLine()'
                     song.placeExtraLine(endingText, song.numMeasures(), ExtraTextPlacementOption.END_OF_LINE)
