@@ -662,7 +662,8 @@ If interested, here are possible upgrades that would be in later versions of the
 
 ## Authors
 
-* **Chami Lamelas** - *Developer* - [LiquidsShadow](https://github.com/LiquidsShadow)
+* **Chami Lamelas** - *Developer* - 
+[ChamiLamelas1](https://github.com/ChamiLamelas1)
 
 ## Acknowledgments
 
